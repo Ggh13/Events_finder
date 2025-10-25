@@ -1,0 +1,26 @@
+version: '3.5'
+
+services:
+  backend:
+    build: .
+    image: ${PACKAGE_LINK}:latest
+    ports:
+        - "8080:8080"
+  grafana:
+    container_name: grafana
+    environment:
+      - ROOT_URL=https://${YOUR_DOMAIN}
+      - GF_SECURITY_ADMIN_USER=Admin
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    network_mode: traefik_network
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana:rw
+    image: grafana/grafana:8.0.0
+
+volumes:
+  grafana-data:
+    driver: local

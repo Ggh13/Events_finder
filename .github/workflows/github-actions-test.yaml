@@ -1,0 +1,25 @@
+name: Testing Workflow
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+jobs:
+    first_job:
+        runs-on: ubuntu-latest
+        env:
+            job_name: First job
+        steps:
+            - uses: actions/checkout@v4
+            
+            - name: Step one
+              run: echo "starting $job_name step one"
+            - name: step two
+              env: 
+                step_name: Step two
+                command1: Do smth
+              run: | 
+                   echo "$step_name:$command1"
+
+
+
