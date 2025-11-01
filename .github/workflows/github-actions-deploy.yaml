@@ -15,8 +15,8 @@ jobs:
         env:
             job_name: Build_Job
             IMAGE_TAG_BACK: ${{secrets.PACKAGE_LINK}}/backend:latest
-            backend_container: hsmg_web_new-backend
-            frontend_container: hsmg_web_new-frontend
+            backend_container: events_finder-backend
+            frontend_container: events_finder-frontend
         steps:
             - uses: actions/checkout@v4
             - name: Login ghcr.io
