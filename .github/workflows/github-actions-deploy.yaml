@@ -1,11 +1,11 @@
 name: Deploying project
 on:
-  push:
-      branches: [main, release]
-  pull_request:
-      branches: [main, release]
-  workflow_dispatch:
-
+    push:
+        branches: [main, release, develop]
+    pull_request:
+        branches: [main, release, develop]
+    workflow_dispatch:
+    
 jobs:
     Build_Job:
         runs-on: ubuntu-latest
@@ -14,8 +14,9 @@ jobs:
             packages: write
         env:
             job_name: Build_Job
-            IMAGE_TAG: ${{secrets.PACKAGE_LINK}}:latest
-            backend_container: Event_Finder
+            IMAGE_TAG_BACK: ${{secrets.PACKAGE_LINK}}/backend:latest
+            backend_container: hsmg_web_new-backend
+            frontend_container: hsmg_web_new-frontend
         steps:
             - uses: actions/checkout@v4
             - name: Login ghcr.io
@@ -27,12 +28,11 @@ jobs:
             - name: Push docker images
               run: |
                 docker images
-                docker tag $backend_container ${{ env.IMAGE_TAG }}
-                docker push ${{ env.IMAGE_TAG }}
+                docker tag $backend_container ${{ env.IMAGE_TAG_BACK }}
+                docker push ${{ env.IMAGE_TAG_BACK }}
             - name: Verify push manually
               run: |
-                docker pull ${{ env.IMAGE_TAG }} || echo "Image not available for pull"
-
+                docker pull ${{ env.IMAGE_TAG_BACK }} || echo "Image backend not available for pull"
     Deploy_Job:
         runs-on: ubuntu-latest
         needs: Build_Job
@@ -48,6 +48,7 @@ jobs:
                 chmod 600 ~/.ssh/id_rsa
             - name: Connect SSH to server and setup
               run: |
+                echo "${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}"
                 ssh -o StrictHostKeyChecking=no ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}} "
                     mkdir -p ~/app
                     cd ~/app
