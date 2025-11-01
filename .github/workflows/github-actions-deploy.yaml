@@ -13,7 +13,7 @@ jobs:
         env:
             job_name: Build_Job
             IMAGE_TAG: ${{secrets.PACKAGE_LINK}}:latest
-            backend_container: github-actions-training-backend
+            backend_container: Event_Finder
         steps:
             - uses: actions/checkout@v4
             - name: Login ghcr.io

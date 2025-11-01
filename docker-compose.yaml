@@ -2,9 +2,47 @@ version: '3.5'
 
 services:
   backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
     container_name: backend
     build:
-      context: ./
+      context: ./backend
       dockerfile: ./docker/Dockerfile
     ports:
         - "8080:8080"
+  postgres:
+    container_name: postgres_events
+    image: postgres:latest
+    environment:
+      POSTGRES_HOST: postgres #127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: postgres
+      PGDATA: /data/postgres
+    volumes:
+       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:latest # Use the latest official Redis image
+    container_name: redis # Optional: Assign a custom container name
+    restart: unless-stopped # Restart the container automatically unless explicitly stopped
+    ports:
+      - "6379:6379" # Map host port 6379 to container port 6379
+    volumes:
+      - redis_data:/data # Persist Redis data to a named volume
+    environment:
+      # Optional: Set a password for Redis authentication
+      - REDIS_PASSWORD=your_secure_password 
+
+volumes:
+  pgdata:
+  redis_data:
