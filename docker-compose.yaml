@@ -42,7 +42,22 @@ services:
     environment:
       # Optional: Set a password for Redis authentication
       - REDIS_PASSWORD=your_secure_password 
-
+  db:
+    image: postgres:latest # Specifies the PostgreSQL image and version
+    container_name: Lesson1 # Assigns a name to the container
+    environment:
+      POSTGRES_DB: mydatabase # Sets the default database name
+      POSTGRES_USER: myuser # Sets the default user
+      POSTGRES_PASSWORD: mysecretpassword # Sets the password for the user
+    ports:
+      - "5432:5432" # Maps host port 5432 to container port 5432
+    #volumes:
+    #  - postgres_data:/var/lib/postgresql/data # Persists database data
+    healthcheck: # Optional: Defines a health check for the service
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 volumes:
   pgdata:
   redis_data:
