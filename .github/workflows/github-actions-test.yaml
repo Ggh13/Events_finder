@@ -1,9 +1,11 @@
 name: Testing Workflow
 on:
-    push:
-        branches: [main, release]
-    pull_request:
-        branches: [main, release]
+  push:
+      branches: [main, release]
+  pull_request:
+      branches: [main, release]
+  workflow_dispatch:
+
 jobs:
     first_job:
         runs-on: ubuntu-latest

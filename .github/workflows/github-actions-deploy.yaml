@@ -1,9 +1,11 @@
 name: Deploying project
 on:
-    push:
-        branches: [main, release]
-    pull_request:
-        branches: [main, release]
+  push:
+      branches: [main, release]
+  pull_request:
+      branches: [main, release]
+  workflow_dispatch:
+
 jobs:
     Build_Job:
         runs-on: ubuntu-latest
