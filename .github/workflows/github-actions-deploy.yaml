@@ -46,6 +46,9 @@ jobs:
                 touch ~/.ssh/id_rsa
                 echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
                 chmod 600 ~/.ssh/id_rsa
+                ls -la ~/.ssh/
+                # Проверяем формат ключа
+                head -n 1 ~/.ssh/id_rsa
             - name: Connect SSH to server and setup
               run: |
                 echo "${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}"
