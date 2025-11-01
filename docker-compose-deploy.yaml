@@ -6,7 +6,7 @@ services:
         postgres:
           condition: service_healthy
     build: .
-    image: ${PACKAGE_LINK}:latest
+    image: ${PACKAGE_LINK}/backend:latest
     ports:
         - "8080:8080"
   postgres:
