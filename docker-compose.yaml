@@ -9,8 +9,6 @@ services:
     build:
       context: ./backend
       dockerfile: ./docker/Dockerfile
-    ports:
-        - "8080:8080"
     networks:
       - app-network
   postgres:
@@ -25,8 +23,6 @@ services:
       PGDATA: /data/postgres
     volumes:
        - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root -d postgres"]
@@ -39,8 +35,6 @@ services:
     image: redis:latest # Use the latest official Redis image
     container_name: redis # Optional: Assign a custom container name
     restart: unless-stopped # Restart the container automatically unless explicitly stopped
-    ports:
-      - "6379:6379" # Map host port 6379 to container port 6379
     volumes:
       - redis_data:/data # Persist Redis data to a named volume
     environment:
