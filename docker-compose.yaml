@@ -11,6 +11,8 @@ services:
       dockerfile: ./docker/Dockerfile
     ports:
         - "8080:8080"
+    networks:
+      - app-network
   postgres:
     container_name: postgres_events
     image: postgres:latest
@@ -31,6 +33,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network
   redis:
     image: redis:latest # Use the latest official Redis image
     container_name: redis # Optional: Assign a custom container name
@@ -42,22 +46,8 @@ services:
     environment:
       # Optional: Set a password for Redis authentication
       - REDIS_PASSWORD=your_secure_password 
-  db:
-    image: postgres:latest # Specifies the PostgreSQL image and version
-    container_name: Lesson1 # Assigns a name to the container
-    environment:
-      POSTGRES_DB: mydatabase # Sets the default database name
-      POSTGRES_USER: myuser # Sets the default user
-      POSTGRES_PASSWORD: mysecretpassword # Sets the password for the user
-    ports:
-      - "5432:5432" # Maps host port 5432 to container port 5432
-    #volumes:
-    #  - postgres_data:/var/lib/postgresql/data # Persists database data
-    healthcheck: # Optional: Defines a health check for the service
-      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    networks:
+      - app-network
   nginx:
     build: ./nginx
     ports:
@@ -72,7 +62,11 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-    
+
 volumes:
   pgdata:
   redis_data:
+
+networks:
+  app-network:
+    driver: bridge

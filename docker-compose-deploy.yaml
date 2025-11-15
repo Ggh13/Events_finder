@@ -59,6 +59,10 @@ services:
 volumes:
   pgdata:
   redis_data:
+
+networks:
+  app-network:
+    driver: bridge
 #  grafana:
 #    container_name: grafana
 #    environment:
