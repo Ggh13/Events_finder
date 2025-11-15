@@ -20,6 +20,14 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+@app.get("/api")
+async def root():
+    return {"message": "Hello World"}
+
+@app.get("/api/health")
+async def health():
+    return {"status": "healthy"}
+
 async def start():
     cfg = Config()
     print("Config loaded:", cfg)
