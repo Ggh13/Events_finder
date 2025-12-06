@@ -9,24 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from internal.config.config import Config
 from pkg.postgres.postgres import Database
-
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
-
-@app.get("/api")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/api/health")
-async def health():
-    return {"status": "healthy"}
+from internal.rest.rest import Router
 
 async def start():
     cfg = Config()
@@ -43,15 +26,9 @@ async def start():
         print(err)
         return
     
+    router = Router(Config.rest)
     
-    config = uvicorn.Config(
-        app,
-        host=cfg.rest_host,
-        port=cfg.rest_port,
-        log_level="info"
-    )
-    server = uvicorn.Server(config)
-    await server.serve()
+    router.run()
 
 if __name__ == "__main__":
     asyncio.run(start())
