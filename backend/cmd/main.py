@@ -30,7 +30,7 @@ async def start():
     # Роутинг ручек передавать в слой хэндлеров
     router = Router(cfg.rest)
     
-    router.run()
+    await router.run()
 
 if __name__ == "__main__":
     asyncio.run(start())
