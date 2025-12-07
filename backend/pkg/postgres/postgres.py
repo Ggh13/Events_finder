@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 import asyncpg
 
 class PostgresConfig(BaseSettings):
-    host: str = Field(..., env="POSTGRES_HOST")
-    port: int = Field(5432, env="POSTGRES_PORT")
-    user: str = Field(..., env="POSTGRES_USER")
+    host: str = Field(..., alias="POSTGRES_HOST")
+    port: int = Field(5432, alias="POSTGRES_PORT")
+    user: str = Field(..., alias="POSTGRES_USER")
     password: str = Field(..., alias="POSTGRES_PASS")
     database: str = Field(..., alias="POSTGRES_DB")
     min_conn: int = Field(1, alias="POSTGRES_MIN_CONN")

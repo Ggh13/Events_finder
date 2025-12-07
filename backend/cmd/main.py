@@ -15,6 +15,7 @@ async def start():
     cfg = Config()
     print("Config loaded:", cfg)
     
+    # База данных постгрес - передавать только  слой репозитория
     psgDB = Database(cfg.postgres)
     success, err = await psgDB.Connect()
     if success == False:
@@ -26,7 +27,8 @@ async def start():
         print(err)
         return
     
-    router = Router(Config.rest)
+    # Роутинг ручек передавать в слой хэндлеров
+    router = Router(cfg.rest)
     
     router.run()
 
