@@ -31,4 +31,12 @@ go.work.sum
 .idea/
 .vscode/
 
+
 venv
+.venv
+
+uv.lock
+.python-version
+pyproject.toml
+__pycache__/
+script.py.mako
