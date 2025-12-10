@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS events_finder.users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS 
 CREATE TABLE IF NOT EXISTS events_finder.user_country (
     pair_id SERIAL PRIMARY KEY,
     country VARCHAR(20) NOT NULL,
