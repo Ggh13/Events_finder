@@ -22,7 +22,7 @@ target_metadata = Base.metadata
 
 def run_migrations(conn_string: str) -> None:
     config.set_main_option("sqlalchemy.url", conn_string)
-    run_migrations_online()
+    command.upgrade(config, "head")
 
 
 def run_migrations_offline() -> None:
