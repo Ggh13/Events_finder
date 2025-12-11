@@ -1,6 +1,16 @@
 from fastapi import HTTPException
 from typing import List
 import numpy as np
+import os
+
+try:
+    from config.settings import settings
+except ImportError:
+    class Settings:
+        WEIGHT_MATRIX_PATH = "weight_matrix.npy"
+        DEFAULT_TOP_K = 5
+    settings = Settings()
+
 
 def recommend_from_vector(user_vector, weight_matrix, K=5):
     """
@@ -19,7 +29,10 @@ def recommend_from_vector(user_vector, weight_matrix, K=5):
     return topk
 
 
-def recommend(cats: List[str], top_k: int):
+def recommend(cats: List[str], top_k: int = None):
+    if top_k is None:
+        top_k = settings.DEFAULT_TOP_K
+
     user_vec = np.zeros(36)
 
     try:
@@ -28,13 +41,26 @@ def recommend(cats: List[str], top_k: int):
     except KeyError:
         raise HTTPException(status_code=404, detail='unknown category was transmitted')
 
-    try:
-        top_rec = recommend_from_vector(user_vec, np.load('weight_matrix.npy'), K=top_k)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail='weight matrix for recsys not found')
-    except NameError:
-        raise HTTPException(status_code=404, detail='numpy is not found')
+    weight_matrix_path = settings.WEIGHT_MATRIX_PATH
 
+    try:
+        # Проверяем существование файла
+        if not os.path.exists(weight_matrix_path):
+            raise FileNotFoundError(f"File {weight_matrix_path} not found")
+
+        weight_matrix = np.load(weight_matrix_path)
+        top_rec = recommend_from_vector(user_vec, weight_matrix, K=top_k)
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f'weight matrix not found at path: {weight_matrix_path}'
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f'error loading weight matrix: {str(e)}'
+        )
     top_rec_names = []
     for category_id in top_rec:
         for k, v in CATEGORIES.items():
