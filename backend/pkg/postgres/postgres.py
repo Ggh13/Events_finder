@@ -3,6 +3,9 @@ from pydantic_settings import BaseSettings
 from typing import Optional, Tuple
 import asyncpg
 
+from sqlalchemy import create_engine
+from internal.models.models import Base
+
 class PostgresConfig(BaseSettings):
     host: str = Field(..., env="POSTGRES_HOST")
     port: int = Field(5432, env="POSTGRES_PORT")
@@ -20,7 +23,7 @@ class PostgresConfig(BaseSettings):
     
     @property
     def url(self) -> str:
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        return f"postgresql+psycopg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
     @property
     def async_url(self) -> str:
@@ -45,7 +48,6 @@ class Database:
             return (True, "")
         except Exception as e:
             return (False, f"Connect error: { str(e) }")
-        
     async def PingDB(self) -> Tuple[bool, str]:
         """
         Pings the PostgreSQL database using asyncpg by attempting a simple query.

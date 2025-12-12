@@ -8,7 +8,6 @@ import asyncio
 import sys
 import os
 
-from internal.config.config import Config
 from pkg.logger.logger import Logger
 
 class RouterConfig(BaseSettings):
@@ -19,11 +18,12 @@ class RouterConfig(BaseSettings):
         env_file_encoding = "utf-8"
         env_prefix = "REST_"
         case_sensitive = False
+
     
-class Router(BaseSettings):
+class Router:
     def __init__(self, cfg: RouterConfig):
         self.serve = FastAPI()
-        self.cofig = uvicorn.Config(
+        self.config = uvicorn.Config(
             self.serve,
             host=cfg.host,
             port=cfg.port,
@@ -35,15 +35,15 @@ class Router(BaseSettings):
         async def root():
             return {"message": "Hello World"}
 
-        @app.get("/health")
+        @self.serve.get("/health")
         async def health():
             return {"status": "healthy"}
 
-        @app.get("/api")
+        @self.serve.get("/api")
         async def root():
             return {"message": "Hello World"}
 
-        @app.get("/api/health")
+        @self.serve.get("/api/health")
         async def health():
             return {"status": "healthy"}
         
