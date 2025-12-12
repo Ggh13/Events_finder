@@ -40,6 +40,7 @@ def upgrade() -> None:
         {"url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSR44pJmtu_d2r2oDs1Nd4FmtxpaQr6_Cf3CQ&s"},
         {"url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXaCK_vIdW1VN-D6XMmG-ivJ_gCiktMGyZbA&s"},
         {"url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzi8L3egO95Ya0oXXobyMS3rT1T2ZsgdBqDg&s"},
+        {"url": "https://img03.rl0.ru/afisha/e1200x800i/daily.afisha.ru/uploads/images/3/8b/38b74343840e21c54359d3fa7018c941.jpg"},
     ]
 
     op.bulk_insert(photo_table, photos)
@@ -55,6 +56,7 @@ def upgrade() -> None:
         { "telegram_id": 1050682049,  "username": "gachimansemen","chat_id": 1050682049,},
         { "telegram_id": 5018845956,  "username": "BRDDRTy","chat_id": 5018845956,},
         { "telegram_id": 1041714664,  "username": "C4eboksar","chat_id": 1041714664,},
+        { "telegram_id": 839846696,  "username": "germanpikel","chat_id": 839846696,},
     ]
     op.bulk_insert(tg_table, tg_info)
 
@@ -79,6 +81,8 @@ def upgrade() -> None:
           "balance": 0, "role": "DISTRIBUTOR", "longitude": 55.75, "latitude": 37.62},
         {"first_name": "Denis", "last_name": "Tugov", "telegram_id": 3, "photo_id": 3,
           "balance": 0, "role": "ADMIN", "longitude": 55.75, "latitude": 37.62},
+        {"first_name": "German", "last_name": "Pickel", "telegram_id": 4, "photo_id": 10,
+          "balance": 0, "role": "PARTICIPANT", "longitude": 55.75, "latitude": 37.62},
     ]
     
     op.bulk_insert(user_table, users)
@@ -339,6 +343,38 @@ def upgrade() -> None:
     ]
     
     op.bulk_insert(user_team_table, distributor_teams)
+
+
+    user_category_table = table(
+        'user_category',
+        column('user_id', sa.Integer()),
+        column('category_id', sa.Integer()),
+        schema='events_finder'
+    )
+
+    user_categories = [
+        # Семён (организатор, user_id: 1) - 3 категории:
+        {"user_id": 1, "category_id": 6},   # Backend-разработка
+        {"user_id": 1, "category_id": 25},  # Машинное обучение
+        {"user_id": 1, "category_id": 28},  # Спортивное программирование
+        
+        # Роман (дистрибьютор, user_id: 2) - 3 категории:
+        {"user_id": 2, "category_id": 12},  # DevOps
+        {"user_id": 2, "category_id": 33},  # Кибербезопасность
+        {"user_id": 2, "category_id": 15},  # Хакатоны
+        
+        # Денис (админ, user_id: 3) - 3 категории:
+        {"user_id": 3, "category_id": 6},   # Backend-разработка
+        {"user_id": 3, "category_id": 31},  # Анализ данных и Big Data
+        {"user_id": 3, "category_id": 12},  # DevOps
+
+        # Денис (админ, user_id: 3) - 3 категории:
+        {"user_id": 4, "category_id": 22},   # Backend-разработка
+        {"user_id": 4, "category_id": 31},  # Анализ данных и Big Data
+        {"user_id": 4, "category_id": 24},  # DevOps
+    ]
+
+    op.bulk_insert(user_category_table, user_categories)
 
 
 
