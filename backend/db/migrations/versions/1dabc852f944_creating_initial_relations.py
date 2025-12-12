@@ -10,6 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql import table, column
 
 # revision identifiers, used by Alembic.
 revision: str = '1dabc852f944'
@@ -25,8 +26,55 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    schema='events_finder'
+        schema='events_finder'
     )
+
+    category_table = table(
+        'category',
+        column('name', sa.Text()),
+        schema='events_finder'
+    )
+
+    categories = [
+        { "name": "Закрытие задолженностей" },
+        { "name": "Химия" },
+        { "name": "Наука" },
+        { "name": "Клуб наставников" },
+        { "name": "Глубокое обучение" },
+        { "name": "Backend-разработка" },
+        { "name": "Экономика" },
+        { "name": "Frontend разработка" },
+        { "name": "IOS-разработка" },
+        { "name": "Музыка" },
+        { "name": "Туризм" },
+        { "name": "DevOps" },
+        { "name": "Робототехника" },
+        { "name": "Волонтерство" },
+        { "name": "Хакатоны" },
+        { "name": "Иностранные языки" },
+        { "name": "Вокал" },
+        { "name": "Android-разработка" },
+        { "name": "3D-моделирование" },
+        { "name": "Промышленный дизайн" },
+        { "name": "Физика" },
+        { "name": "Стажировки" },
+        { "name": "Танцы" },
+        { "name": "Машинное обучение" },
+        { "name": "Творчество" },
+        { "name": "Театр" },
+        { "name": "Спортивное программирование" },
+        { "name": "Предпринимательство" },
+        { "name": "Интеллектуальные игры" },
+        { "name": "Анализ данных и Big Data" },
+        { "name": "Гейм-дизайн" },
+        { "name": "Кибербезопасность" },
+        { "name": "Спорт" },
+        { "name": "КВН" },
+        { "name": "Дизайн" },
+    ]
+
+    op.bulk_insert(category_table, categories)
+
     op.create_table('photo',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('url', sa.Text(), nullable=False),
