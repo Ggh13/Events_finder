@@ -21,6 +21,10 @@ class PostgresConfig(BaseSettings):
     @property
     def url(self) -> str:
         return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+    @property
+    def async_url(self) -> str:
+        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}?async_fallback=True"
     
  
 class Database:
