@@ -1,3 +1,6 @@
+UserMap
+
+https://miro.com/welcomeonboard/SW5tR29DOG5GZy84dGlaWFRmeWdrcTVUd2lzQ3F1UU5zeU0ybnNvUmxBcUFRSWRjTEIxSTlUZ2c5cG1pT2VxWVNFRnZUMjBNcHV2YmgxMUV0R2RMTFpCcTQvRkcwekY1MmFuczMwTkh1QXArOWJ4SkprOWRpd0wvNmRjSktkdktQdGo1ZEV3bUdPQWRZUHQzSGl6V2NBPT0hdjE=?share_link_id=479813658966
 
 ##  Общие эндпоинты (для всех ролей)
 
