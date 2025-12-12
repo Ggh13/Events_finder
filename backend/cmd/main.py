@@ -22,6 +22,7 @@ async def start():
 
     run_migrations(cfg.postgres.async_url)
     
+    # База данных постгрес - передавать только  слой репозитория
     psgDB = Database(cfg.postgres)
     
     success, err = await psgDB.Connect()
@@ -34,9 +35,10 @@ async def start():
         print(err)
         return
     
-    router = Router(Config.rest)
+    # Роутинг ручек передавать в слой хэндлеров
+    router = Router(cfg.rest)
     
-    router.run()
+    await router.run()
 
     
 if __name__ == "__main__":
