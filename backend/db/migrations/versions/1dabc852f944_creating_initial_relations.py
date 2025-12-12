@@ -87,6 +87,25 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     schema='events_finder'
     )
+
+    team_table = table(
+        'team',
+        column('name', sa.Text()),
+        schema='events_finder'
+    )
+
+    teams = [
+        { "name": "acmmisis" },
+        { "name": "aiknowledgeclub" },
+        { "name": "art_klaster" },
+        { "name": "itatmisis" },
+        { "name": "nust_misis" },
+        { "name": "sportmisis" },
+        { "name": "youthmisis" },
+    ]
+
+    op.bulk_insert(team_table, teams)
+
     op.create_table('telegram_info',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('telegram_id', sa.BigInteger(), nullable=False),
