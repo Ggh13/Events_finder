@@ -11,8 +11,8 @@ import os
 from pkg.logger.logger import Logger
 
 class RouterConfig(BaseSettings):
-    host: str = Field(..., env="REST_HOST")
-    port: int = Field(5432, env="REST_PORT")
+    host: str = Field(..., alias="REST_HOST")
+    port: int = Field(5432, alias="REST_PORT")
     class Config:
         env_file = "./config/.env"
         env_file_encoding = "utf-8"
@@ -22,28 +22,28 @@ class RouterConfig(BaseSettings):
     
 class Router:
     def __init__(self, cfg: RouterConfig):
-        self.serve = FastAPI()
+        self.app = FastAPI()
         self.config = uvicorn.Config(
-            self.serve,
+            self.app,
             host=cfg.host,
             port=cfg.port,
             log_level="info"
         )
         self.server = uvicorn.Server(self.config)
         
-        @self.serve.get("/")
+        @self.app.get("/")
         async def root():
             return {"message": "Hello World"}
 
-        @self.serve.get("/health")
+        @self.app.get("/health")
         async def health():
             return {"status": "healthy"}
 
-        @self.serve.get("/api")
+        @self.app.get("/api")
         async def root():
             return {"message": "Hello World"}
 
-        @self.serve.get("/api/health")
+        @self.app.get("/api/health")
         async def health():
             return {"status": "healthy"}
         
