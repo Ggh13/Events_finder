@@ -130,7 +130,7 @@ class EventBase(BaseSchema):
 class EventCreate(EventBase):
     organiser_id: int
     category_ids: Optional[List[int]] = []
-    photo_ids: Optional[List[int]] = []
+    photo_ids: Optional[List[PhotoCreate]] = []
 
 class EventUpdate(BaseSchema):
     name: Optional[str] = None
