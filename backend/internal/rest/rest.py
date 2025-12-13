@@ -18,6 +18,7 @@ class RouterConfig(BaseSettings):
         env_file_encoding = "utf-8"
         env_prefix = "REST_"
         case_sensitive = False
+
     
 class Router:
     def __init__(self, cfg: RouterConfig):

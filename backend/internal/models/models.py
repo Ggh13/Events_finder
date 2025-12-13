@@ -16,7 +16,7 @@ Base = declarative_base()
 from sqlalchemy import event
 from sqlalchemy.schema import CreateSchema
 
-event.listen(Base.metadata, 'before_create', CreateSchema('events_finder'))
+event.listen(Base.metadata, 'before_create', CreateSchema('events_finder', if_not_exists=True))
 
 class UserRole(str, enum.Enum):
     PARTICIPANT = 'P'
@@ -65,7 +65,7 @@ class User(Base):
     photo_id = Column(Integer, ForeignKey('events_finder.photo.id'))
     balance = Column(Integer, nullable=False)
     role = Column(
-        PG_ENUM(UserRole, name='user_role', create_type=False),
+    PG_ENUM(UserRole, name='user_role', create_type=True),  # Меняем здесь!
         nullable=False,
         default=UserRole.PARTICIPANT
     )
@@ -202,7 +202,7 @@ class Ticket(Base):
     user_id = Column(Integer, ForeignKey('events_finder.user.id'))
     event_id = Column(Integer, ForeignKey('events_finder.event.id'))
     status = Column(
-        PG_ENUM(TicketStatus, name='ticket_status', create_type=False),
+        PG_ENUM(TicketStatus, name='ticket_status', create_type=True),
         nullable=False,
         default=TicketStatus.PENDING
     )
