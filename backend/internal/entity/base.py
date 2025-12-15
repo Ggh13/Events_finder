@@ -112,6 +112,17 @@ class CategoryUpdate(BaseSchema):
 class CategoryRead(CategoryBase):
     id: int
 
+
+class GetEvents(BaseModel):
+    telegram_id: int
+    page: int
+    
+    
+class GetEvent(BaseModel):
+    telegram_id: int
+    event_id: int
+    
+
 # Event schemas
 class EventBase(BaseSchema):
     name: str
@@ -133,6 +144,7 @@ class EventCreate(EventBase):
     photo_ids: Optional[List[PhotoCreate]] = []
 
 class EventUpdate(BaseSchema):
+    event_id: int
     name: Optional[str] = None
     description: Optional[str] = None
     date: Optional[datetime] = None
@@ -147,9 +159,18 @@ class EventUpdate(BaseSchema):
     is_freezed: Optional[bool] = None
     organiser_id: Optional[int] = None
 
+class UpdateRequest(EventUpdate):
+    telegram_id: int
+
 class EventRead(EventBase):
     id: int
     organiser_id: int
+    photo_ids: Optional[List[PhotoCreate]] = []
+    category_ids: Optional[List[int]] = []
+
+class GetAllEvents(BaseModel):
+    total_cnt: int
+    events: Optional[List[EventRead]]
 
 class EventWithRelations(EventRead):
     organiser: Optional[UserRead] = None

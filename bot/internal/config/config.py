@@ -4,7 +4,6 @@ from internal.bot.bot import BotConfig
 
 class Config(BaseSettings):
     bot: BotConfig = Field(default_factory=BotConfig)
-    # s3: S3Config = Field(default_factory=S3Config)
 
     class Config:
         env_file = "./config/.env"

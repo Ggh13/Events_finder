@@ -9,10 +9,12 @@ import logging
 
 class BotConfig(BaseSettings):
     token: str = Field(..., alias="BOT_TOKEN")
+    host: str = Field(..., alias="BOT_BACKEND_HOST")
+    port: int = Field(..., alias="BOT_BACKEND_PORT")
     class Config:
         env_file = "./config/.env"
         env_file_encoding = "utf-8"
-        env_prefix = "REST_"
+        env_prefix = "BOT_"
         case_sensitive = False
 
 

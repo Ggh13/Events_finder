@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 
 from internal.models.models import TelegramInfo, User
-from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead
+from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead
 from pkg.postgres.postgres import Database
 
 from sqlalchemy import insert, select, update
@@ -93,3 +93,33 @@ class UserRepository:
             print(f"User creation failed: {e}", flush=True)
             return None
     
+    async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[UserRead]:
+        """
+        Получить пользователя по telegram_id из таблицы telegram_info
+        с использованием JOIN
+        """
+        # Создаем JOIN между таблицами user и telegram_info
+        stmt = (
+            select(User).join(TelegramInfo, User.telegram_id == TelegramInfo.id)
+            .where(TelegramInfo.telegram_id == telegram_id)
+        )
+        
+        compiled = stmt.compile(
+            dialect=postgresql.asyncpg.dialect(),
+            compile_kwargs={"render_postcompile": True}
+        )
+        
+        sql = str(compiled)
+        params = compiled.params
+        
+        row = await self.database.fetchrow(sql, *params.values())
+        if row is None:
+            return None
+        
+        try:
+            # Преобразуем строку в словарь и создаем объект UserRead
+            user_dict = dict(row)
+            return UserRead.model_validate(user_dict, from_attributes=True)
+        except Exception as e:
+            print(f"Ошибка при создании UserRead: {e}", flush=True)
+            return None

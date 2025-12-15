@@ -1,17 +1,18 @@
-from fastapi import FastAPI
-from typing import Optional, Tuple
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import Field, PostgresDsn, RedisDsn
 from pydantic_settings import BaseSettings
-from typing import Optional, Tuple
+from typing import List
 import uvicorn
-import asyncio
-import sys
-import os
+
 from fastapi.middleware.cors import CORSMiddleware
 
-from internal.entity.base import EventCreate
+from internal.service.organiser import OrganiserService
+
+from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents
 
 from pkg.logger.logger import Logger
+
 
 class RouterConfig(BaseSettings):
     host: str = Field(..., alias="REST_HOST")
@@ -21,10 +22,11 @@ class RouterConfig(BaseSettings):
         env_file_encoding = "utf-8"
         env_prefix = "REST_"
         case_sensitive = False
+        extra="allow"
 
     
 class Router:
-    def __init__(self, cfg: RouterConfig):
+    def __init__(self, cfg: RouterConfig, organiser_service: OrganiserService):
         self.app = FastAPI()
         self.app.add_middleware(
             CORSMiddleware,
@@ -39,6 +41,7 @@ class Router:
             port=cfg.port,
             log_level="info"
         )
+        self.organiser_service = organiser_service
         self.server = uvicorn.Server(self.config)
         
         @self.app.get("/")
@@ -59,8 +62,68 @@ class Router:
         
         @self.app.post("/api/create_event")
         async def create_event(event: EventCreate):
-            print(event)
-            return {"status": "ok"}
+            event_id = await self.organiser_service.create_event(event)
+            if event_id is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to create event"
+                )
+            return {"event_id": event_id}
+        
+        @self.app.get("/api/get_events", response_model=GetAllEvents)
+        async def get_events(get_events: GetEvents):
+            print("Req:", get_events, flush=True)
+            (total_cnt, events) = await self.organiser_service.get_all_events(get_events)
+            if events is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to list events"
+                )
+            print("*****************************", flush=True)
+            print(events, flush =True)
+            
+            return GetAllEvents(
+                total_cnt=total_cnt,
+                events=events
+            )
+        
+        @self.app.get("/api/get_event/", response_model=EventRead)
+        async def get_event(telegram_id: int, event_id: int):
+            event = await self.organiser_service.get_event(telegram_id=telegram_id, event_id=event_id)
+            if event is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to get event"
+                )
+            print("*****************************", flush=True)
+            print(event, flush =True)
+            
+            return event
+        
+        @self.app.delete("/api/delete_event/")
+        async def delete_event(telegram_id: int, event_id: int):
+            event_id = await self.organiser_service.delete_event(telegram_id=telegram_id, event_id=event_id)
+            if event_id is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to delete event"
+                )
+            return {
+                "event_id": event_id
+            }
+        
+        @self.app.patch("/api/update_event/")
+        async def patch_event(upd: UpdateRequest):
+            event_id = await self.organiser_service.update_event(upd=upd)
+            if event_id is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to delete event"
+                )
+            return {
+                "event_id": event_id
+            }
+        
         
     async def run(self):
         await self.server.serve()
