@@ -66,25 +66,12 @@ https://miro.com/welcomeonboard/SW5tR29DOG5GZy84dGlaWFRmeWdrcTVUd2lzQ3F1UU5zeU0y
 **Request:**
 ```json
 {
-  "success": true,
-  "message": "Categories added successfully",
-  "data": {
-    "user_id": 1,
-    "categories": [
-      {
-        "id": 1,
-        "name": "Спорт"
-      },
-      {
-        "id": 2,
-        "name": "Музыка"
-      },
-      {
-        "id": 3,
-        "name": "Технология"
-      }
-    ]
-  }
+  "categories": [
+    "Машинное обучение",
+    "Глубокое обучение",
+    "Стажировки"
+  ],
+  "top_k": 5 
 }
 ```
 
