@@ -1,0 +1,14 @@
+pydantic==2.12.3
+pydantic_core==2.41.4
+pydantic-settings==2.1.0
+aiofiles==25.1.0 
+aiogram==3.23.0
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.2
+aiosignal==1.4.0
+attrs==25.4.0
+frozenlist==1.8.0
+magic-filter==1.0.12
+multidict==6.7.0
+propcache==0.4.1
+yarl==1.22.0

@@ -20,6 +20,7 @@ class PostgresConfig(BaseSettings):
         env_file_encoding = "utf-8"
         env_prefix = "POSTGRES_"
         case_sensitive = False
+        extra="allow"
     
     @property
     def url(self) -> str:
