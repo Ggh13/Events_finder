@@ -136,3 +136,27 @@ class OrganiserService:
             return None
         
         return event
+
+
+
+    async def register(self, telegram_id: int, event_id: int):
+        user = await self.user_repo.get_user_by_telegram_id(telegram_id=telegram_id)
+        if user is None:
+            print("Failed to get user", flush=True)
+            return None
+        
+        if user.role != UserRole.ORGANISER:
+            print("User is not organiser", flush=True)
+            return None
+        
+        event: EventRead = await self.event_repo.get_event_by_id(event_id=event_id)
+
+        if event.organiser_id != user.id:
+            print("User is not organiser of event", flush=True)
+            return None
+        
+        if event is None:
+            print("Failed to get events", flush=True)
+            return None
+        
+        return event

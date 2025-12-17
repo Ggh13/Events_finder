@@ -123,7 +123,26 @@ class Router:
             return {
                 "event_id": event_id
             }
+
+        @app.post("/api/register/")
+        async def patch_event(upd: UpdateRequest):
+            event_id = await self.organiser_service.register(upd=upd)
+            if event_id is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="failed to delete event"
+                )
+            return {
+                "event_id": event_id
+            }
+
+
         
+    }
+        
+
+
+
         
     async def run(self):
         await self.server.serve()
