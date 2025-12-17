@@ -416,6 +416,28 @@
 }
 ```
 
+---
+
+### 19. Получить предполагаемый канал
+**POST** `/api/v1/predict`
+
+**Request:**
+```json
+{
+	"text": "🎄 Новогодний интеллектуальный забег . . . от ACM MISIS!",
+	"image":"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA . . . zQ5Ojf"
+}
+```
+
+**Response (201):**
+```json
+{
+	"success": true,
+	"predicted_class": "acmmisis",
+	"conf": 0.9233613014221191
+}
+```
+
 
 
 

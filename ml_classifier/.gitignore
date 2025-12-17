@@ -1,4 +1,4 @@
-server/model_weights
 processed
 pipeline/best_model.pth
 config
+ml_classifier/server/__pycache__
