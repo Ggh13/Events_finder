@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from internal.service.organiser import OrganiserService
 
-from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents
+from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents, UserUpdate
 
 from pkg.logger.logger import Logger
 
@@ -125,8 +125,8 @@ class Router:
             }
 
         @app.post("/api/register/")
-        async def patch_event(upd: UpdateRequest):
-            event_id = await self.organiser_service.register(upd=upd)
+        async def patch_event(user: UserUpdate):
+            event_id = await self.organiser_service.register(User=user)
             if event_id is None:
                 raise HTTPException(
                     status_code=500,
@@ -138,7 +138,7 @@ class Router:
 
 
         
-    }
+    
         
 
 

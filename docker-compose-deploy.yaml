@@ -13,7 +13,7 @@ services:
     container_name: postgres_events
     image: postgres:latest
     environment:
-      POSTGRES_HOST: postgres #127.0.0.1
+      POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
       POSTGRES_USER: root
       POSTGRES_PASSWORD: 1234

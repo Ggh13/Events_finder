@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . /app
 
 RUN pip install -r requirements.txt
-COPY ./config/.env ./config/
+
 
 EXPOSE 8080
 
