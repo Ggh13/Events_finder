@@ -239,7 +239,7 @@ class EventRepository:
             rows = await self.database.fetch(sql, *params.values())
             
             if not rows:
-                return []
+                return 0, []
             
             events = []
             for row in rows:

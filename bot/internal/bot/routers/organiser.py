@@ -753,7 +753,6 @@ async def handle_view_event_detail(callback_query: types.CallbackQuery, state: F
                 ],
                 [
                     types.InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_event:{event_id}"),
-                    types.InlineKeyboardButton(text="👥 Участники", callback_data=f"event_participants:{event_id}")
                 ]
             ]
         )
@@ -941,10 +940,251 @@ async def handle_edit_existing_event(callback_query: types.CallbackQuery, state:
 @router.callback_query(F.data.startswith("delete_event:"))
 async def handle_delete_event(callback_query: types.CallbackQuery, state: FSMContext):
     """Обработчик удаления мероприятия"""
-    await callback_query.answer("🗑 Удаление мероприятия")
-    # Здесь можно реализовать логику удаления
-    event_id = callback_query.data.split(":")[1]
-    await callback_query.message.answer(f"Удаление мероприятия {event_id} будет реализовано позже.")
+    try:
+        await callback_query.answer("🔄 Удаляем мероприятие...")
+        
+        # Получаем event_id из callback_data
+        parts = callback_query.data.split(":")
+        if len(parts) < 2:
+            await callback_query.message.answer("❌ Ошибка: некорректные данные")
+            return
+        
+        event_id = int(parts[1])
+        
+        # Получаем telegram_id пользователя
+        data = await state.get_data()
+        telegram_id = data.get('telegram_id', callback_query.from_user.id)
+        current_page = data.get('current_page', 0)  # Получаем текущую страницу
+        
+        # Отправляем запрос на удаление мероприятия
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.delete(
+                    'http://backend:8080/api/delete_event/',
+                    params={
+                        "telegram_id": telegram_id,
+                        "event_id": event_id
+                    }
+                ) as response:
+                    
+                    if response.status == 200:
+                        # Успешное удаление
+                        result = await response.json()
+                        deleted_event_id = result.get('event_id')
+                        
+                        # Уведомляем пользователя об успешном удалении
+                        await callback_query.answer(f"✅ Мероприятие удалено", show_alert=False)
+                        
+                        # Удаляем сообщение с деталями мероприятия
+                        await callback_query.message.delete()
+                        
+                        # Возвращаемся к списку мероприятий
+                        await return_to_events_list(callback_query, state, current_page)
+                        
+                    elif response.status == 404:
+                        await callback_query.answer("❌ Мероприятие не найдено", show_alert=True)
+                    elif response.status == 403:
+                        await callback_query.answer("❌ У вас нет прав для удаления этого мероприятия", show_alert=True)
+                    else:
+                        error = await response.text()
+                        await callback_query.answer(f"❌ Ошибка удаления: {response.status}", show_alert=True)
+                        
+        except aiohttp.ClientConnectorError:
+            await callback_query.answer("❌ Не удалось подключиться к серверу", show_alert=True)
+        except Exception as e:
+            await callback_query.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+            
+    except Exception as e:
+        await callback_query.answer(f"❌ Произошла ошибка: {str(e)}", show_alert=True)
+
+
+async def return_to_events_list(callback_query: types.CallbackQuery, state: FSMContext, page: int):
+    """Возвращает пользователя к списку мероприятий"""
+    try:
+        # Получаем данные пользователя
+        data = await state.get_data()
+        telegram_id = data.get('telegram_id', callback_query.from_user.id)
+        
+        # Загружаем обновленный список мероприятий
+        request_data = {
+            "telegram_id": telegram_id,
+            "page": 1  # Загружаем первую страницу
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                'http://backend:8080/api/get_events',
+                json=request_data,
+                headers={'Content-Type': 'application/json'}
+            ) as response:
+                
+                if response.status == 200:
+                    resp = await response.json()
+                    all_events = resp.get("events", [])
+                    total_cnt = resp.get("total_cnt", 0)
+                    
+                    if not all_events:
+                        # Если мероприятий больше нет
+                        await state.update_data({
+                            'all_events': [],
+                            'total_cnt': 0,
+                            'current_page': 0
+                        })
+                        
+                        # Сообщение об отсутствии мероприятий
+                        await callback_query.message.answer(
+                            "📭 У вас больше нет созданных мероприятий.\n\n"
+                            "Чтобы создать новое мероприятие, используйте команду /create_event",
+                            parse_mode="Markdown"
+                        )
+                        return
+                    
+                    # Обновляем состояние
+                    await state.update_data({
+                        'all_events': all_events,
+                        'total_cnt': total_cnt,
+                        'current_page': 0,  # Начинаем с первой страницы
+                    })
+                    
+                    # Показываем первую страницу мероприятий
+                    await show_events_page(
+                        message=callback_query.message,
+                        state=state,
+                        all_events=all_events,
+                        page=0,  # Первая страница
+                        total_pages=(total_cnt + 2) // 3,
+                        edit_message_id=None  # Создаем новое сообщение
+                    )
+                    
+                elif response.status == 404:
+                    # Нет мероприятий
+                    await state.update_data({
+                        'all_events': [],
+                        'total_cnt': 0,
+                        'current_page': 0
+                    })
+                    
+                    await callback_query.message.answer(
+                        "📭 У вас больше нет созданных мероприятий.\n\n"
+                        "Чтобы создать новое мероприятие, используйте команду /create_event",
+                        parse_mode="Markdown"
+                    )
+                else:
+                    # Ошибка при загрузке
+                    await callback_query.message.answer(
+                        "❌ Не удалось загрузить обновленный список мероприятий.\n"
+                        "Попробуйте использовать команду /created_events еще раз.",
+                        parse_mode="Markdown"
+                    )
+                    
+    except Exception as e:
+        await callback_query.message.answer(
+            f"❌ Произошла ошибка при возврате к списку мероприятий.\n"
+            f"Используйте команду /created_events для просмотра мероприятий.",
+            parse_mode="Markdown"
+        )
+
+async def load_and_refresh_events(callback_query: types.CallbackQuery, state: FSMContext):
+    """Загружает обновленный список мероприятий и показывает его"""
+    try:
+        # Показываем уведомление о загрузке
+        await callback_query.answer("🔄 Обновляем список...", show_alert=False)
+        
+        # Получаем данные пользователя
+        data = await state.get_data()
+        telegram_id = data.get('telegram_id', callback_query.from_user.id)
+        current_page_3 = data.get('current_page_3', 1)
+        message_id = data.get('message_id')
+        chat_id = data.get('chat_id')
+        
+        if not message_id or not chat_id:
+            message_id = callback_query.message.message_id
+            chat_id = callback_query.message.chat.id
+        
+        # Загружаем первую страницу с бэкенда
+        request_data = {
+            "telegram_id": telegram_id,
+            "page": 1
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                'http://backend:8080/api/get_events',
+                json=request_data,
+                headers={'Content-Type': 'application/json'}
+            ) as response:
+                
+                if response.status == 200:
+                    resp = await response.json()
+                    all_events = resp.get("events", [])
+                    total_cnt = resp.get("total_cnt", 0)
+                    
+                    if not all_events:
+                        # Если мероприятий больше нет
+                        await state.update_data({
+                            'total_cnt': 0,
+                            'loaded_pages': {},
+                            'current_page_3': 1
+                        })
+                        
+                        # Редактируем сообщение
+                        await router.bot.edit_message_text(
+                            chat_id=chat_id,
+                            message_id=message_id,
+                            text="📭 У вас больше нет созданных мероприятий."
+                        )
+                        return
+                    
+                    # Обновляем состояние
+                    await state.update_data({
+                        'telegram_id': telegram_id,
+                        'total_cnt': total_cnt,
+                        'loaded_pages': {1: all_events},
+                        'current_page_3': 1,  # Возвращаемся на первую страницу
+                        'message_id': message_id,
+                        'chat_id': chat_id,
+                        'view_mode': 'list'
+                    })
+                    
+                    # Показываем первую страницу
+                    await show_events_page(
+                        state=state,
+                        page_3=1,
+                        edit_message_id=message_id
+                    )
+                    
+                elif response.status == 404:
+                    await state.update_data({
+                        'total_cnt': 0,
+                        'loaded_pages': {}
+                    })
+                    
+                    await router.bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        text="📭 У вас больше нет созданных мероприятий."
+                    )
+                else:
+                    # Если произошла ошибка, показываем текущую страницу
+                    await show_events_page(
+                        state=state,
+                        page_3=current_page_3,
+                        edit_message_id=message_id
+                    )
+                    
+    except Exception as e:
+        # В случае ошибки просто показываем текущую страницу
+        data = await state.get_data()
+        current_page_3 = data.get('current_page_3', 1)
+        message_id = data.get('message_id')
+        chat_id = data.get('chat_id')
+        
+        if message_id and chat_id:
+            await show_events_page(
+                state=state,
+                page_3=current_page_3,
+                edit_message_id=message_id
+            )
 
 
 @router.callback_query(F.data.startswith("event_participants:"))
