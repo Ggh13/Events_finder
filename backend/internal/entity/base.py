@@ -72,6 +72,10 @@ class UserUpdate(BaseSchema):
     longitude: Optional[float] = None
     latitude: Optional[float] = None
 
+class UserRegisterRequest(BaseModel):
+    telegram_id: int = Field(..., ge=1)
+    user: UserUpdate
+
 class UserRead(UserBase):
     id: int
     telegram_id: Optional[int] = None

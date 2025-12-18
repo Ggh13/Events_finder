@@ -2,7 +2,7 @@ from internal.repository.user import UserRepository
 from internal.repository.photo import PhotoRepository
 from internal.repository.event import EventRepository
 
-from internal.entity.base import EventCreate, UserRole, GetEvents, GetEvent, EventRead, EventUpdate, UpdateRequest
+from internal.entity.base import EventCreate, UserRole, GetEvents, GetEvent, EventRead, EventUpdate, UpdateRequest, UserUpdate
 
 class OrganiserService:
     def __init__(self, user_repo: UserRepository, photo_repo: PhotoRepository, event_repo: EventRepository):
@@ -136,3 +136,12 @@ class OrganiserService:
             return None
         
         return event
+
+    async def register(self, User: UserUpdate,telegram_id: int):
+        user = await self.user_repo.register_user(user=User, telegram_id=telegram_id)
+        print("Serv user registr good", flush=True)
+        if user is None:
+            print("Failed to registr user", flush=True)
+            return None
+        return user
+

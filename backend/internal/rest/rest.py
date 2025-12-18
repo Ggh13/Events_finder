@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from internal.service.organiser import OrganiserService
 
-from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents
+from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents, UserRegisterRequest, UserRead
 
 from pkg.logger.logger import Logger
 
@@ -111,19 +111,15 @@ class Router:
             return {
                 "event_id": event_id
             }
-        
-        @self.app.patch("/api/update_event/")
-        async def patch_event(upd: UpdateRequest):
-            event_id = await self.organiser_service.update_event(upd=upd)
-            if event_id is None:
-                raise HTTPException(
-                    status_code=500,
-                    detail="failed to delete event"
-                )
-            return {
-                "event_id": event_id
-            }
-        
+
+        @self.app.post("/users/register", response_model=UserRead)
+        async def register_user_endpoint(payload: UserRegisterRequest):
+            user = await repo.register_user(payload.telegram_id, payload.user)
+            if user is None:
+                raise HTTPException(status_code=404, detail="telegram_id not found in telegram_info")
+            return user
+
+
         
     async def run(self):
         await self.server.serve()
