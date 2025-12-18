@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from internal.service.organiser import OrganiserService
 
-from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents, UserRegisterRequest, UserRead
+from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateRequest, GetAllEvents, UserRegisterRequest, UserRead,UserCreate, RegisterResponse
 
 from pkg.logger.logger import Logger
 
@@ -111,13 +111,16 @@ class Router:
             return {
                 "event_id": event_id
             }
-
-        @self.app.post("/users/register", response_model=UserRead)
+        
+        @self.app.post("/api/register2", response_model=RegisterResponse)
         async def register_user_endpoint(payload: UserRegisterRequest):
-            user = await repo.register_user(payload.telegram_id, payload.user)
+
+            user = await organiser_service.register_user(payload.user)
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
             if user is None:
                 raise HTTPException(status_code=404, detail="telegram_id not found in telegram_info")
-            return user
+            return {"user" : user,
+                    "comment" : "??"}
 
 
         
