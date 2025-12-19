@@ -40,3 +40,5 @@ uv.lock
 pyproject.toml
 __pycache__/
 script.py.mako
+
+.pytest_cache

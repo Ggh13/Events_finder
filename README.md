@@ -37,20 +37,29 @@ https://miro.com/welcomeonboard/SW5tR29DOG5GZy84dGlaWFRmeWdrcTVUd2lzQ3F1UU5zeU0y
 ##  Общие эндпоинты (для всех ролей)
 
 ### 1. Создание аккаунта
-**POST** `/api/create_account`
+**POST** `/api/register`
 
 **Request:**
 ```json
 {
-  "telegram_id": 123456789,
-  "username": "john_doe",
-  "first_name": "John",
-  "last_name": "Doe",
-  "chat_id": 987654321,
-  "longitude": 37.622504,
-  "latitude": 55.753215,
-  "role": "P"
+  "telegram_id": 123,
+  "user": {
+    "telegram_info": {
+      "id": 1,
+      "telegram_id": 123,
+      "username": "ivan_petrov",
+      "chat_id": 123
+    },
+    "first_name": "Ivan",
+    "last_name": "Petrov",
+    "role": "PARTICIPANT",
+    "balance": 0,
+    "longitude": 37.6,
+    "latitude": 55.7,
+    "photo_id": null
+  }
 }
+
 ```
 
 **Response (200):**
@@ -444,6 +453,28 @@ https://miro.com/welcomeonboard/SW5tR29DOG5GZy84dGlaWFRmeWdrcTVUd2lzQ3F1UU5zeU0y
     "reported_event_id": 1,
     "created_at": "2025-12-10T20:42:00Z"
   }
+}
+```
+
+---
+
+### 19. Получить предполагаемый канал
+**POST** `/api/v1/predict`
+
+**Request:**
+```json
+{
+	"text": "🎄 Новогодний интеллектуальный забег . . . от ACM MISIS!",
+	"image":"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA . . . zQ5Ojf"
+}
+```
+
+**Response (201):**
+```json
+{
+	"success": true,
+	"predicted_class": "acmmisis",
+	"conf": 0.9233613014221191
 }
 ```
 

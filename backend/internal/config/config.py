@@ -1,5 +1,5 @@
 from pydantic import Field, PostgresDsn, RedisDsn
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pkg.postgres.postgres import PostgresConfig
 from pkg.redis.redis import RedisConfig
 from internal.rest.rest import RouterConfig
@@ -15,3 +15,5 @@ class Config(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "allow"
+
+settings = Config()
