@@ -5,9 +5,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 
 from internal.models.models import TelegramInfo, User, UserCategory
-from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead, UserUpdate, CategoryBase
+from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead, UserUpdate, CategoryBase, EventRead
 from pkg.postgres.postgres import Database
-from internal.models.models import Category
+from internal.models.models import Category, Event, EventCategory
 from sqlalchemy import insert, select, update
 from sqlalchemy.dialects import postgresql
 from asyncpg import exceptions
@@ -16,6 +16,12 @@ from typing import Optional, Dict, Any
 
 from asyncpg import exceptions
 from fastapi import HTTPException
+
+from typing import Optional
+from sqlalchemy import select, func
+from sqlalchemy.dialects import postgresql
+
+
 class UserRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
@@ -151,3 +157,37 @@ class UserRepository:
             return ( row["category_id"])
         except exceptions.UniqueViolationError:
             return (UserCategory.category_id)
+
+
+    async def get_recomend_post(self, user_id: int) -> Optional[EventRead]:
+        """Вернуть 1 случайный event, у которого есть категория из user_category для user_id=user_id."""
+
+        subq = (
+            select(Event.id.label("event_id"))
+            .join(EventCategory, EventCategory.event_id == Event.id)
+            .join(UserCategory, UserCategory.category_id == EventCategory.category_id)
+            .where(UserCategory.user_id == user_id)
+            .distinct()
+            .subquery()
+        )
+
+        # 2) по этим id выбираем полный Event и рандомим уже снаружи
+        stmt = (
+            select(Event)
+            .join(subq, subq.c.event_id == Event.id)
+            .order_by(func.random())
+            .limit(1)
+        )
+        compiled = stmt.compile(dialect=postgresql.asyncpg.dialect())
+        sql = str(compiled)
+        params = compiled.params
+
+        print(sql)
+        print(*params.values())
+
+        row = await self.database.fetchrow(sql, *params.values())
+        if row is None:
+            return None
+
+        # fetchrow возвращает колонки event; приводим к dict и валидируем
+        return EventRead.model_validate(dict(row), from_attributes=True)

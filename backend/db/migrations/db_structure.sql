@@ -135,3 +135,9 @@ create table if not exists events_finder.event_report(
   reported_event_id int references events_finder.event(id)
 );
 
+ALTER TABLE events_finder."user"
+  DROP CONSTRAINT IF EXISTS user_photo_id_fkey;
+
+-- если фото не обязательно
+ALTER TABLE events_finder."user"
+  ALTER COLUMN photo_id DROP NOT NULL;

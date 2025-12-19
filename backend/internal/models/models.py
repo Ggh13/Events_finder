@@ -32,14 +32,17 @@ class TicketStatus(str, enum.Enum):
 
 
 class Photo(Base):
-    __tablename__ = 'photo'
-    __table_args__ = ({'schema': 'events_finder'},)
-    
+    __tablename__ = "photo"
+    __table_args__ = {"schema": "events_finder"}
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    url = Column(Text, nullable=False, default='')
-    
-    user = relationship("User", back_populates="photo_rel")
-    events = relationship("Event", secondary="events_finder.event_photo", back_populates="photos")
+    url = Column(Text, nullable=False, default="")
+
+    events = relationship(
+        "Event",
+        secondary="events_finder.event_photo",
+        back_populates="photos",
+    )
 
 
 class TelegramInfo(Base):
@@ -55,42 +58,51 @@ class TelegramInfo(Base):
 
 
 class User(Base):
-    __tablename__ = 'user'
-    __table_args__ = ({'schema': 'events_finder'},)
-    
+    __tablename__ = "user"
+    __table_args__ = {"schema": "events_finder"}
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, ForeignKey('events_finder.telegram_info.id'))
+    telegram_id = Column(Integer, ForeignKey("events_finder.telegram_info.id"))
+
     first_name = Column(Text, nullable=False)
     last_name = Column(Text, nullable=False)
+
+    # просто число (id фото, или что угодно), без FK и без relationship
     photo_id = Column(Integer, nullable=True)
+
     balance = Column(Integer, nullable=False)
-    role = Column(
-    PG_ENUM(UserRole, name='user_role', create_type=True),  # Меняем здесь!
-        nullable=False,
-        default=UserRole.PARTICIPANT
-    )
+    role = Column(PG_ENUM(UserRole, name="user_role", create_type=True), nullable=False)
+
     longitude = Column(DECIMAL(8, 6), nullable=False)
     latitude = Column(DECIMAL(9, 6), nullable=False)
-    
+
     telegram_info_rel = relationship("TelegramInfo", back_populates="user")
-    photo_rel = relationship("Photo", back_populates="user")
     teams = relationship("Team", secondary="events_finder.user_team", back_populates="users")
     categories = relationship("Category", secondary="events_finder.user_category", back_populates="users")
     organized_events = relationship("Event", back_populates="organiser")
     tickets = relationship("Ticket", back_populates="user")
     
-    banned_users = relationship(
-        "User",
-        secondary="events_finder.user_ban",
-        primaryjoin="User.id == UserBan.user_id",
-        secondaryjoin="User.id == UserBan.user_ban_id",
-        backref="banned_by"
+    sent_reports = relationship(
+        "UserReport",
+        foreign_keys="UserReport.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan",
     )
-    
-    sent_reports = relationship("UserReport", foreign_keys="UserReport.sender_id", back_populates="sender")
-    received_reports = relationship("UserReport", foreign_keys="UserReport.reported_user_id", back_populates="reported_user")
-    
-    event_reports_sent = relationship("EventReport", foreign_keys="EventReport.sender_id", back_populates="sender")
+
+    received_reports = relationship(
+        "UserReport",
+        foreign_keys="UserReport.reported_user_id",
+        back_populates="reported_user",
+        cascade="all, delete-orphan",
+    )
+
+    # reports: user -> event (у тебя back_populates="event_reports_sent")
+    event_reports_sent = relationship(
+        "EventReport",
+        foreign_keys="EventReport.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan",
+    )
 
 
 class Team(Base):
@@ -128,8 +140,8 @@ class Category(Base):
 
 
 class Event(Base):
-    __tablename__ = 'event'
-    __table_args__ = ({'schema': 'events_finder'},)
+    __tablename__ = "event"
+    __table_args__ = {"schema": "events_finder"}
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(Text, nullable=False)
@@ -153,6 +165,11 @@ class Event(Base):
     
     reports = relationship("EventReport", back_populates="reported_event")
 
+    photos = relationship(
+        "Photo",
+        secondary="events_finder.event_photo",
+        back_populates="events",
+    )
 
 class EventPhoto(Base):
     __tablename__ = 'event_photo'

@@ -153,3 +153,11 @@ class OrganiserService:
             return None
         return user
 
+    async def get_recomend_post(self, token: int):
+        user = await self.user_repo.get_recomend_post(user_id=int(token))
+        print("Serv user registr good", flush=True)
+        if user is None:
+            print("Failed to registr user", flush=True)
+            return None
+        return user
+
