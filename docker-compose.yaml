@@ -1,6 +1,24 @@
 version: '3.5'
 
 services:
+  classifier:
+    depends_on:
+      backend:
+        condition: service_started
+    container_name: classifier
+    build: 
+      context: ./ml_classifier
+      dockerfile: ./docker/Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '1'   # Limit to 0.5 of a CPU core
+          memory: 3072M    # Limit memory to 50 Megabytes
+        reservations:
+          cpus: '1'   # Guarantee at least 0.25 of a CPU core
+          memory: 3072M    # Guarantee at least 20 Megabytes of memory
+    networks:
+      - app-network
   bot:
     depends_on:
       backend:

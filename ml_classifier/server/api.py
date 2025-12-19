@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import base64
+from fastapi.middleware.cors import CORSMiddleware
 
 from service import ClassifierServ, Predict
 from config import config
@@ -25,6 +26,14 @@ classifier_service = ClassifierServ()
 
 
 app = FastAPI(title = config.APP_NAME)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get(config.API_PREFIX+"/health", response_model=HealthResponse)
 async def health_check():

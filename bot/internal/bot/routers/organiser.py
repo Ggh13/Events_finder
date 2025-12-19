@@ -405,7 +405,7 @@ async def handle_confirm_event(callback_query: types.CallbackQuery, state: FSMCo
         "longitude": coords[0],
         "latitude": coords[1],
         "age_restriction": int(data["age_restriction"]),
-        "chat_link": "link",
+        "chat_link": data["chat_link"],
         "max_participants": int(data["max_participants"]),
         "cost": 0,
         "balance": 0,
@@ -433,8 +433,8 @@ async def handle_confirm_event(callback_query: types.CallbackQuery, state: FSMCo
                     # Обновляем сообщение
                     await loading_msg.edit_text(
                         f"✅ Мероприятие создано!\n"
-                        f"ID: {result.get('id')}\n"
-                        f"Ссылка: {result.get('url', 'Нет')}"
+                        # f"ID: {result.get('id')}\n"
+                        # f"Ссылка: {result.get('url', 'Нет')}"
                     )
                     
                     # Завершаем состояние FSM

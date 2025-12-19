@@ -1,21 +1,65 @@
+UserMap
+
+https://miro.com/welcomeonboard/SW5tR29DOG5GZy84dGlaWFRmeWdrcTVUd2lzQ3F1UU5zeU0ybnNvUmxBcUFRSWRjTEIxSTlUZ2c5cG1pT2VxWVNFRnZUMjBNcHV2YmgxMUV0R2RMTFpCcTQvRkcwekY1MmFuczMwTkh1QXArOWJ4SkprOWRpd0wvNmRjSktkdktQdGo1ZEV3bUdPQWRZUHQzSGl6V2NBPT0hdjE=?share_link_id=479813658966
+
+##  Хранение файлов в телеграм
+
+### 1. У каждого присылаемого файла уникальный file_id
+### 2. Получить информацию о файле
+**GET** ``https://api.telegram.org/bot<token>/getFile?file_id=<file_id>``
+
+`token` - Токен бота
+
+`file_id` - Id файла
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "result": {
+    "file_id": "AgACAgIAAxkBAAIBrGk9gZ_3WDbR3LaJF6bQJCH7yJnQAAL1DmsbDyPwSQpwj2vy_RNgAQADAgADcwADNgQ",
+    "file_unique_id": "AQAD9Q5rGw8j8El4",
+    "file_size": 1152,
+    "file_path": "photos/file_24.jpg"
+  }
+}
+```
+### 3. Скачать файл
+**GET** `https://api.telegram.org/file/bot<token>/<file_path>`
+
+`token` - Токен бота
+
+`file_path` - Путь к файлу (параметр из предыдущего пункта)
+
+**Response (200):** сам файл
 
 ##  Общие эндпоинты (для всех ролей)
 
 ### 1. Создание аккаунта
-**POST** `/api/create_account`
+**POST** `/api/register`
 
 **Request:**
 ```json
 {
-  "telegram_id": 123456789,
-  "username": "john_doe",
-  "first_name": "John",
-  "last_name": "Doe",
-  "chat_id": 987654321,
-  "longitude": 37.622504,
-  "latitude": 55.753215,
-  "role": "P"
+  "telegram_id": 123,
+  "user": {
+    "telegram_info": {
+      "id": 1,
+      "telegram_id": 123,
+      "username": "ivan_petrov",
+      "chat_id": 123
+    },
+    "first_name": "Ivan",
+    "last_name": "Petrov",
+    "role": "PARTICIPANT",
+    "balance": 0,
+    "longitude": 37.6,
+    "latitude": 55.7,
+    "photo_id": null
+  }
 }
+
 ```
 
 **Response (200):**
@@ -31,30 +75,26 @@
 **Request:**
 ```json
 {
-  "success": true,
-  "message": "Categories added successfully",
-  "data": {
-    "user_id": 1,
-    "categories": [
-      {
-        "id": 1,
-        "name": "Спорт"
-      },
-      {
-        "id": 2,
-        "name": "Музыка"
-      },
-      {
-        "id": 3,
-        "name": "Технология"
-      }
-    ]
-  }
+  "categories": [
+    "Машинное обучение",
+  ],
+  "top_k": 5 
 }
 ```
-
+`categories` может содержать в себе от 1 до 34 строк
+`top_k` - количество рекомендуемых категорий, обычно 5
 **Response (200):**
-
+```json
+{
+  "recommendations": [
+    "Анализ данных и Big Data",
+    "Стажировки",
+    "Хакатоны",
+    "Глубокое обучение",
+    "DevOps"
+  ]
+}
+```
 
 
 ### 3. Удалить категорию интересов

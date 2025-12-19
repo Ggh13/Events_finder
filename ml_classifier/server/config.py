@@ -16,7 +16,7 @@ class Config:
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
 
-    MODEL_PATH: str = os.getenv("MODEL_PATH", "model_weights/best_model.pth")
+    MODEL_PATH: str = os.getenv("MODEL_PATH", "server/model_weights/best_model.pth")
     MODEL_NAME: str = os.getenv("MODEL_NAME", "google-bert/bert-base-uncased")
     IMAGE_SIZE: int = int(os.getenv("IMAGE_SIZE", "224"))
     MAX_TEXT_LENGTH: int = int(os.getenv("MAX_TEXT_LENGTH", "512"))
