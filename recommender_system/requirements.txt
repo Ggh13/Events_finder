@@ -3,6 +3,7 @@ fastapi-cli==0.0.16
 fastapi-cloud-cli==0.5.2
 numpy==2.3.5
 pydantic==2.12.5
-pydantic_core==2.41.5
+pydantic-settings==2.7.0      # или актуальную последнюю версию
 python-dotenv==1.2.1
+pydantic_core==2.41.5
 uvicorn==0.38.0
