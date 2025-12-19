@@ -50,6 +50,8 @@ class TelegramInfoUpdate(BaseSchema):
 class TelegramInfoRead(TelegramInfoBase):
     id: int
 
+
+
 # User schemas
 class UserBase(BaseSchema):
     first_name: str
@@ -72,10 +74,19 @@ class UserUpdate(BaseSchema):
     longitude: Optional[float] = None
     latitude: Optional[float] = None
 
+class UserRegisterRequest(BaseModel):
+    telegram_id: int 
+    user: UserCreate
+
 class UserRead(UserBase):
     id: int
     telegram_id: Optional[int] = None
     photo_id: Optional[int] = None
+
+class RegisterResponse(BaseModel):
+    user: int
+    comment: str
+
 
 class UserWithRelations(UserRead):
     telegram_info: Optional[TelegramInfoRead] = None
@@ -101,7 +112,7 @@ class TeamWithUsers(TeamRead):
 
 # Category schemas
 class CategoryBase(BaseSchema):
-    name: str
+    id_cat: int
 
 class CategoryCreate(CategoryBase):
     pass
