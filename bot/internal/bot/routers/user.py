@@ -7,17 +7,17 @@ import aiohttp
 
 router = Router(name=__name__)
 
-BACKEND_REGISTER_URL = "http://localhost/api/register"  # поменяй на свой URL
+BACKEND_REGISTER_URL = "http://backend:8080/api/register" 
 
 
 class UserRegister(StatesGroup):
-    telegram_info_id = State()   # это поле "telegram_info.id" из твоего примера
+    telegram_info_id = State()  
     first_name = State()
     last_name = State()
     role = State()
     balance = State()
-    coords = State()             # "longitude, latitude" текстом или локацией
-    photo = State()              # опционально
+    coords = State()             
+    photo = State()              
     confirmation = State()
     editing_field = State()
 
@@ -334,6 +334,8 @@ async def reg_confirm(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
     payload = {
+
+        
         "telegram_id": data["telegram"]["telegram_id"],
         "user": {
             "telegram_info": {

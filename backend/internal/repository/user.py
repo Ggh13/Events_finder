@@ -14,7 +14,8 @@ from asyncpg import exceptions
 
 from typing import Optional, Dict, Any
 
-
+from asyncpg import exceptions
+from fastapi import HTTPException
 class UserRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
@@ -60,7 +61,7 @@ class UserRepository:
         res = TelegramInfoRead.model_validate(dict(row), from_attributes=True)
         return res
     
-    async def create_user(self, user_create: UserCreate) -> Optional[int]:
+    async def create_user(self, user_create: UserCreate):
         """Создание пользователя в базе данныx"""
 
         stmt = insert(User).values(telegram_id = user_create.telegram_info.id,
@@ -83,15 +84,16 @@ class UserRepository:
         try:
             row = await self.database.fetchrow(sql, *params.values())
             if row is None:
-                return None
+                return 1
             print(row)
             return dict(row)["id"]
         except exceptions.UniqueViolationError as e:
             print(f"User creation failed - unique violation: {e}", flush=True)
-            return None
+            return 2
         except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Invalid foreign key: {e}")
             print(f"User creation failed: {e}", flush=True)
-            return None
+            return e
     
     async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[UserRead]:
         """

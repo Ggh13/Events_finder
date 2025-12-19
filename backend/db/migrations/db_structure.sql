@@ -24,7 +24,7 @@ create table if not exists events_finder.user (
   telegram_id int references events_finder.telegram_info(id),
   first_name text not null,
   last_name text not null,
-  photo_id int references events_finder.photo(id),
+  photo_id int not null,
   balance int not null,
   role user_role not null default 'P',
   longitude decimal(8, 6) not null,

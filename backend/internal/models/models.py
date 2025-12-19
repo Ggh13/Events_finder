@@ -62,7 +62,7 @@ class User(Base):
     telegram_id = Column(Integer, ForeignKey('events_finder.telegram_info.id'))
     first_name = Column(Text, nullable=False)
     last_name = Column(Text, nullable=False)
-    photo_id = Column(Integer, ForeignKey('events_finder.photo.id'))
+    photo_id = Column(Integer, nullable=True)
     balance = Column(Integer, nullable=False)
     role = Column(
     PG_ENUM(UserRole, name='user_role', create_type=True),  # Меняем здесь!

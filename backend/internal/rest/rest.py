@@ -131,7 +131,9 @@ class Router:
         ):
             token = credentials.credentials  # <-- это сам Bearer-токен
             user = await organiser_service.add_category_to_user(payload, token)
-
+            if isinstance(user, str):
+                return {"user" : 333,
+                    "comment" : str(e)}
             if user is None:
                 raise HTTPException(status_code=404, detail="telegram_id not found in telegram_info")
             return {"user" : user,
