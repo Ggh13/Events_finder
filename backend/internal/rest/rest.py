@@ -19,6 +19,9 @@ from aiogram import Bot
 
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()
+
+import asyncio
+
 class RouterConfig(BaseSettings):
     host: str = Field(..., alias="REST_HOST")
     port: int = Field(5432, alias="REST_PORT")
@@ -51,7 +54,8 @@ class Router:
         self.server = uvicorn.Server(self.config)
         self.token=cfg.bot_token
         self.bot = Bot(token=self.token)
-        
+    
+
         @self.app.get("/")
         async def root():
             return {"message": "Hello World"}
@@ -162,4 +166,5 @@ class Router:
                     "comment" : "??"}
         
     async def run(self):
+        asyncio.create_task(self.organiser_service.start_notification_loop(self.bot))
         await self.server.serve()

@@ -50,8 +50,6 @@ class TelegramInfoUpdate(BaseSchema):
 class TelegramInfoRead(TelegramInfoBase):
     id: int
 
-
-
 # User schemas
 class UserBase(BaseSchema):
     first_name: str
@@ -178,6 +176,10 @@ class EventRead(EventBase):
     organiser_id: int
     photo_ids: Optional[List[PhotoCreate]] = []
     category_ids: Optional[List[int]] = []
+
+class NotificationRead(BaseSchema):
+    id: int
+    event_id: int
 
 class GetAllEvents(BaseModel):
     total_cnt: int

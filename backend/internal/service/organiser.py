@@ -42,66 +42,66 @@ class OrganiserService:
             print("Failed to create event", flush=True)
             return None
         
-        url = f"https://api.telegram.org/bot{bot.token}/getFile?file_id={event_create.photo_ids[0].url}"
+        # url = f"https://api.telegram.org/bot{bot.token}/getFile?file_id={event_create.photo_ids[0].url}"
 
-        result = None
+        # result = None
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        print(f"Response from Telegram API: {data}", flush=True)
-                        result = data.get("result", None)
-                    else:
-                        print(f"Telegram API error: {response.status}", flush=True)
-            except Exception as e:
-                print(f"Failed to make request to Telegram API: {e}", flush=True)
+        # async with aiohttp.ClientSession() as session:
+        #     try:
+        #         async with session.get(url) as response:
+        #             if response.status == 200:
+        #                 data = await response.json()
+        #                 print(f"Response from Telegram API: {data}", flush=True)
+        #                 result = data.get("result", None)
+        #             else:
+        #                 print(f"Telegram API error: {response.status}", flush=True)
+        #     except Exception as e:
+        #         print(f"Failed to make request to Telegram API: {e}", flush=True)
         
-        if result is None:
-            return event_id
+        # if result is None:
+        #     return event_id
 
-        file_path = result.get("file_path", None)
+        # file_path = result.get("file_path", None)
 
-        if file_path is None:
-            return event_id
+        # if file_path is None:
+        #     return event_id
         
 
-        download_url = f"https://api.telegram.org/file/bot{bot.token}/{file_path}"
-        image_bytes = None
+        # download_url = f"https://api.telegram.org/file/bot{bot.token}/{file_path}"
+        # image_bytes = None
         
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(download_url) as response:
-                    if response.status == 200:
-                        image_bytes = await response.read()
-                        print(f"Image downloaded successfully, size: {len(image_bytes)} bytes", flush=True)
-                    else:
-                        print(f"Failed to download image: {response.status}", flush=True)
-        except Exception as e:
-            print(f"Failed to download image: {e}", flush=True)
+        # try:
+        #     async with aiohttp.ClientSession() as session:
+        #         async with session.get(download_url) as response:
+        #             if response.status == 200:
+        #                 image_bytes = await response.read()
+        #                 print(f"Image downloaded successfully, size: {len(image_bytes)} bytes", flush=True)
+        #             else:
+        #                 print(f"Failed to download image: {response.status}", flush=True)
+        # except Exception as e:
+        #     print(f"Failed to download image: {e}", flush=True)
         
-        event_class = await self.send_to_classifier(
-            classifier_service_url="http://classifier:8000/api/v1/predict",
-            text=event_create.description,
-            image_bytes=image_bytes
-        )
+        # event_class = await self.send_to_classifier(
+        #     classifier_service_url="http://classifier:8000/api/v1/predict",
+        #     text=event_create.description,
+        #     image_bytes=image_bytes
+        # )
 
-        print("Class: ", event_class, flush=True)
+        # print("Class: ", event_class, flush=True)
 
-        if event_class is None:
-            print("Failed to get event class", flush=True)
-            raise ValueError("Failed to get event class")
-            return event_id
-            event_class = "sportmisis"
+        # if event_class is None:
+        #     print("Failed to get event class", flush=True)
+        #     raise ValueError("Failed to get event class")
+        #     return event_id
+        #     event_class = "sportmisis"
 
-        distributors = await self.user_repo.get_distributors(team_name=event_class)
+        # distributors = await self.user_repo.get_distributors(team_name=event_class)
 
-        print(distributors)
-        distributor_tg_ids = [d.telegram_id for d in distributors]
-        await self.send_to_all_distributors(distributor_tg_ids=distributor_tg_ids, event_create=event_create, bot=bot)
-        # for d in distributors:
-        #     await self.send_to_distibutor(distributor_tg_id=d.telegram_id, event_create=event_create, bot_token=bot_token)
+        # print(distributors)
+        # distributor_tg_ids = [d.telegram_id for d in distributors]
+        # await self.send_to_all_distributors(distributor_tg_ids=distributor_tg_ids, event_create=event_create, bot=bot)
+        # # for d in distributors:
+        # #     await self.send_to_distibutor(distributor_tg_id=d.telegram_id, event_create=event_create, bot_token=bot_token)
 
         return event_id
     
@@ -181,7 +181,6 @@ class OrganiserService:
         # Убираем пустые строки
         details = [d for d in details if d]
         return "\n".join(details)
-
 
 
     async def send_to_classifier(self, classifier_service_url: str, text: str, image_bytes: bytes) -> str:
@@ -354,3 +353,76 @@ class OrganiserService:
             return None
         return user
 
+    async def start_notification_loop(self, bot: Bot):
+        while True:
+            notifications = await self.event_repo.get_notification_batch()
+            if notifications is None:
+                print("No notify", flush=True)
+                await asyncio.sleep(5)
+                continue
+                
+            for n in notifications:
+                event = await self.event_repo.get_event_by_id(n.event_id)
+                if event is None:
+                    print("Failed to get event", flush=True)
+                    continue
+                
+                url = f"https://api.telegram.org/bot{bot.token}/getFile?file_id={event.photo_ids[0].url}"
+
+                result = None
+
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.get(url) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                print(f"Response from Telegram API: {data}", flush=True)
+                                result = data.get("result", None)
+                            else:
+                                print(f"Telegram API error: {response.status}", flush=True)
+                    except Exception as e:
+                        print(f"Failed to make request to Telegram API: {e}", flush=True)
+                
+                if result is None:
+                    continue
+
+                file_path = result.get("file_path", None)
+
+                if file_path is None:
+                    continue
+                
+
+                download_url = f"https://api.telegram.org/file/bot{bot.token}/{file_path}"
+                image_bytes = None
+                
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(download_url) as response:
+                            if response.status == 200:
+                                image_bytes = await response.read()
+                                print(f"Image downloaded successfully, size: {len(image_bytes)} bytes", flush=True)
+                            else:
+                                print(f"Failed to download image: {response.status}", flush=True)
+                except Exception as e:
+                    print(f"Failed to download image: {e}", flush=True)
+                
+                event_class = await self.send_to_classifier(
+                    classifier_service_url="http://classifier:8000/api/v1/predict",
+                    text=event.description,
+                    image_bytes=image_bytes
+                )
+
+                print("Class: ", event_class, flush=True)
+
+                if event_class is None:
+                    print("Failed to get event class", flush=True)
+                    continue
+
+                distributors = await self.user_repo.get_distributors(team_name=event_class)
+                distributor_tg_ids = [d.telegram_id for d in distributors]
+                print(distributor_tg_ids)
+                await self.send_to_all_distributors(distributor_tg_ids=distributor_tg_ids, event_create=event, bot=bot)
+
+            ids = [n.id for n in notifications]
+            await self.event_repo.delete_notifications_by_ids(ids)
+            await asyncio.sleep(5)
