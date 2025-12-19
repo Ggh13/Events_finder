@@ -1,4 +1,4 @@
 processed
 pipeline/best_model.pth
-config
+#config/.env
 ml_classifier/server/__pycache__

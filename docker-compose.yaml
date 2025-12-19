@@ -21,6 +21,26 @@ services:
       dockerfile: ./docker/Dockerfile
     networks:
       - app-network
+  #ml_classifier:
+  #  depends_on:
+  #    backend:
+  #      condition: service_started
+  #  container_name: ml_classifier
+  #  build:
+  #    context: ./ml_classifier
+  #    dockerfile: ./server/docker/Dockerfile
+  #  networks:
+  #    - app-network
+  recommender_system:
+    depends_on:
+      backend:
+        condition: service_started
+    container_name: recommender_system
+    build:
+      context: ./recommender_system
+      dockerfile: ./docker/Dockerfile
+    networks:
+      - app-network
   postgres:
     container_name: postgres_events
     image: postgres:latest
