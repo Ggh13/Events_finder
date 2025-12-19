@@ -112,7 +112,7 @@ class TeamWithUsers(TeamRead):
 
 # Category schemas
 class CategoryBase(BaseSchema):
-    name: str
+    id_cat: int
 
 class CategoryCreate(CategoryBase):
     pass

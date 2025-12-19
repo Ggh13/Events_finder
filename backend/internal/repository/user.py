@@ -4,10 +4,10 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 
-from internal.models.models import TelegramInfo, User
-from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead, UserUpdate
+from internal.models.models import TelegramInfo, User, UserCategory
+from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead, UserUpdate, CategoryBase
 from pkg.postgres.postgres import Database
-
+from internal.models.models import Category
 from sqlalchemy import insert, select, update
 from sqlalchemy.dialects import postgresql
 from asyncpg import exceptions
@@ -124,5 +124,28 @@ class UserRepository:
             print(f"Ошибка при создании UserRead: {e}", flush=True)
             return None
 
+    async def add_category_to_user(
+    self,
+    user_id: int,
+    category_in: CategoryBase,
+) -> Optional[tuple[int, str]]:
+        stmt = (
+            insert(UserCategory)
+            .values(user_id=int(user_id), category_id=int(category_in.id_cat))
+            .returning(UserCategory.user_id, UserCategory.category_id)
+        )
 
-    
+        compiled = stmt.compile(
+            dialect=postgresql.asyncpg.dialect(),
+            compile_kwargs={"render_postcompile": True},
+        )
+        sql = str(compiled)
+        params = compiled.params
+
+        try:
+            row = await self.database.fetchrow(sql, *params.values())
+            if row is None:
+                return None
+            return ( row["category_id"])
+        except exceptions.UniqueViolationError:
+            return (UserCategory.category_id)
