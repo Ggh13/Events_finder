@@ -137,8 +137,9 @@ class OrganiserService:
         
         return event
 
-    async def register_user(self, User: UserCreate):
-        user = await self.user_repo.create_user(user_create=User)
+    async def register_user(self, User2: UserCreate):
+        user = await self.user_repo.create_user(user_create=User2)
+
         print("Serv user registr good", flush=True)
         if user is None:
             print("Failed to registr user", flush=True)

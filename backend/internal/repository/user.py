@@ -66,41 +66,77 @@ class UserRepository:
 
         res = TelegramInfoRead.model_validate(dict(row), from_attributes=True)
         return res
-    
-    async def create_user(self, user_create: UserCreate):
-        """Создание пользователя в базе данныx"""
 
-        stmt = insert(User).values(telegram_id = user_create.telegram_info.id,
-            first_name = user_create.first_name,
-            last_name = user_create.last_name,
-            photo_id = user_create.photo_id,  
-            balance = user_create.balance,
-            role = str(user_create.role.value),
-            longitude = float(user_create.longitude),
-            latitude = float(user_create.latitude)
-        ).returning(User.id)
+    async def get_or_create_telegram_info_id(self, tg_id: int, username: str, chat_id: int) -> int:
+        stmt = (
+            pg_insert(TelegramInfo)
+            .values(telegram_id=tg_id, username=username, chat_id=chat_id)
+            .on_conflict_do_update(
+                index_elements=[TelegramInfo.telegram_id],
+                set_={"username": username, "chat_id": chat_id},
+            )
+            .returning(TelegramInfo.id)
+        )
 
         compiled = stmt.compile(dialect=postgresql.asyncpg.dialect(), compile_kwargs={"render_postcompile": True})
-        sql = str(compiled)
-        params = compiled.params
+        row = await self.database.fetchrow(str(compiled), *compiled.params.values())
+        return int(dict(row)["id"])
 
-        print(sql)
-        print(*params.values())
+    async def create_user(self, user_create: UserCreate):
+        # 1) достаём данные telegram_info из payload
+        if not user_create.telegram_info:
+            raise HTTPException(status_code=422, detail="telegram_info is required")
+
+        tg_id = user_create.telegram_info.telegram_id
+        username = user_create.telegram_info.username
+        chat_id = user_create.telegram_info.chat_id
+
+        # 2) пробуем найти telegram_info.id по telegram_id
+        stmt_find = select(TelegramInfo.id).where(TelegramInfo.telegram_id == tg_id)
+        compiled_find = stmt_find.compile(dialect=postgresql.asyncpg.dialect(), compile_kwargs={"render_postcompile": True})
+        row = await self.database.fetchrow(str(compiled_find), *compiled_find.params.values())
+
+        if row is None:
+            # 3) если нет — создаём telegram_info и берём его id
+            stmt_ti = (
+                insert(TelegramInfo)
+                .values(telegram_id=tg_id, username=username, chat_id=chat_id)
+                .returning(TelegramInfo.id)
+            )
+            compiled_ti = stmt_ti.compile(dialect=postgresql.asyncpg.dialect(), compile_kwargs={"render_postcompile": True})
+            row_ti = await self.database.fetchrow(str(compiled_ti), *compiled_ti.params.values())
+            telegram_info_id = int(dict(row_ti)["id"])
+        else:
+            telegram_info_id = int(dict(row)["id"])
+
+        # 4) создаём user с FK на telegram_info.id
+        stmt = (
+            insert(User)
+            .values(
+                telegram_id=telegram_info_id,  # FK на telegram_info.id
+                first_name=user_create.first_name,
+                last_name=user_create.last_name,
+                photo_id=user_create.photo_id,
+                balance=user_create.balance,
+                role=str(user_create.role.value),
+                longitude=float(user_create.longitude),
+                latitude=float(user_create.latitude),
+            )
+            .returning(User.id)
+        )
+
+        compiled = stmt.compile(dialect=postgresql.asyncpg.dialect(), compile_kwargs={"render_postcompile": True})
 
         try:
-            row = await self.database.fetchrow(sql, *params.values())
-            if row is None:
-                return 1
-            print(row)
-            return dict(row)["id"]
+            row = await self.database.fetchrow(str(compiled), *compiled.params.values())
+            return int(dict(row)["id"])
         except exceptions.UniqueViolationError as e:
-            print(f"User creation failed - unique violation: {e}", flush=True)
             return 2
         except Exception as e:
-            raise HTTPException(status_code=422, detail=f"Invalid foreign key: {e}")
-            print(f"User creation failed: {e}", flush=True)
-            return e
-    
+            raise HTTPException(status_code=422, detail=f"DB error: {e}")
+
+
+
     async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[UserRead]:
         """
         Получить пользователя по telegram_id из таблицы telegram_info
