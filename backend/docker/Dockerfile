@@ -2,9 +2,12 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY . /app
+COPY requirements.txt .
 
 RUN pip install -r requirements.txt
+
+COPY . /app
+
 COPY ./config/config.yaml ./config/
 COPY ./config/.env ./config/
 COPY ./db/migrations/ /app/db/migrations/

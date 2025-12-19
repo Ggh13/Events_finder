@@ -171,6 +171,24 @@ class Event(Base):
         back_populates="events",
     )
 
+    notifications = relationship("Notification", back_populates="event")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    __table_args__ = {"schema": "events_finder"}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(
+        Integer, 
+        ForeignKey("events_finder.event.id"), 
+        nullable=False
+    )
+    
+    # Связи
+    event = relationship("Event", back_populates="notifications")
+
+
 class EventPhoto(Base):
     __tablename__ = 'event_photo'
     __table_args__ = (

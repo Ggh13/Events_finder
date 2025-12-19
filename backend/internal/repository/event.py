@@ -1,18 +1,79 @@
 from pkg.postgres.postgres import Database
-from internal.models.models import EventPhoto, Event, EventCategory, Photo, Category, EventCategory
+from internal.models.models import EventPhoto, Event, EventCategory, Photo, Category, EventCategory, Notification
 
-from internal.entity.base import EventCreate, EventRead, PhotoCreate, EventUpdate
+from internal.entity.base import EventCreate, EventRead, PhotoCreate, EventUpdate, NotificationRead
 
 from typing import List
 
-from sqlalchemy import insert, select, update, func
+from sqlalchemy import insert, select, update, func, delete
 from sqlalchemy.dialects import postgresql
 
 
 class EventRepository:
     def __init__(self, database: Database):
         self.database = database
-    
+
+    async def get_notification_batch(self) -> List[NotificationRead] | None:
+        try:
+            # Создаем запрос с использованием SQLAlchemy
+            stmt = select(Notification).order_by(Notification.id).limit(20)
+            compiled = stmt.compile(dialect=postgresql.asyncpg.dialect())
+            sql = str(compiled)
+            params = compiled.params
+            
+            # Выполняем запрос
+            rows = await self.database.fetch(sql, *params.values())
+            print(rows)
+            
+            if not rows:
+                return []
+            
+            # Преобразуем SQLAlchemy модели в Pydantic модели
+            notification_reads = []
+            for row in rows:
+                notification = dict(row)
+                notification_read = NotificationRead(
+                    id=notification["id"],
+                    event_id=notification["event_id"]
+                )
+                notification_reads.append(notification_read)
+            print(notification_reads)
+            return notification_reads
+            
+        except Exception as e:
+            print(f"Failed to get notifications {e}")
+            return None
+        
+    async def delete_notifications_by_ids(self, notification_ids: List[int]) -> bool:
+        """
+        Удаляет уведомления по списку ID
+        
+        Args:
+            notification_ids: Список ID уведомлений для удаления
+            
+        Returns:
+            True если удаление успешно, False если ошибка
+        """
+        if not notification_ids:
+            return True
+        
+        try:
+            stmt = delete(Notification).where(Notification.id.in_(notification_ids))
+            compiled = stmt.compile(dialect=postgresql.asyncpg.dialect(), compile_kwargs={"render_postcompile": True})
+            print(stmt, flush=True)
+            
+            sql = str(compiled)
+            params = compiled.params
+            print(sql, flush=True)
+            print(compiled.params, flush=True)
+            await self.database.execute(sql, *params.values())
+            print("Удалены", notification_ids, flush=True)
+            return True
+            
+        except Exception as e:
+            print(f"Failed to delete notifications {e}", flush=True)
+            return False
+
     async def create_event(self, new_event: EventCreate, photo_ids: List[int]) -> int | None:
         """Простая версия создания мероприятия"""
         # 1. Создаем мероприятие
@@ -55,6 +116,19 @@ class EventRepository:
             stmt_cats = insert(EventCategory).values(categories_data)
             compiled_cats = stmt_cats.compile(dialect=postgresql.asyncpg.dialect())
             await self.database.execute(str(compiled_cats), *compiled_cats.params.values())
+        
+        stmt = insert(Notification).values(
+            event_id=event_id
+        )
+
+        compiled = stmt.compile(dialect=postgresql.asyncpg.dialect())
+        sql = str(compiled)
+        params = compiled.params
+
+        await self.database.execute(
+            sql, 
+            *params.values()
+        )
         
         return event_id
 
