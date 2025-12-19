@@ -13,10 +13,13 @@ from internal.entity.base import EventCreate, GetEvents, EventRead, UpdateReques
 
 from pkg.logger.logger import Logger
 
+from aiogram import Bot
+
 
 class RouterConfig(BaseSettings):
     host: str = Field(..., alias="REST_HOST")
     port: int = Field(5432, alias="REST_PORT")
+    bot_token:str = Field(..., alias="REST_BOT_TOKEN")
     class Config:
         env_file = "./config/.env"
         env_file_encoding = "utf-8"
@@ -43,6 +46,8 @@ class Router:
         )
         self.organiser_service = organiser_service
         self.server = uvicorn.Server(self.config)
+        self.token=cfg.bot_token
+        self.bot = Bot(token=self.token)
         
         @self.app.get("/")
         async def root():
@@ -62,7 +67,7 @@ class Router:
         
         @self.app.post("/api/create_event")
         async def create_event(event: EventCreate):
-            event_id = await self.organiser_service.create_event(event)
+            event_id = await self.organiser_service.create_event(event_create=event, bot=self.bot)
             if event_id is None:
                 raise HTTPException(
                     status_code=500,

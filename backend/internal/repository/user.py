@@ -3,6 +3,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+from typing import List
 
 from internal.models.models import TelegramInfo, User
 from internal.entity.base import TelegramInfoCreate, UserCreate, TelegramInfoRead, UserRead
@@ -18,6 +19,42 @@ from typing import Optional, Dict, Any
 class UserRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
+
+    async def get_distributors(self, team_name: str) -> List[TelegramInfoRead] | None:
+        """
+        Получить дистрибьюторов с использованием сырого SQL
+        """
+        try:
+            sql = """
+                SELECT ti.*
+                FROM events_finder.telegram_info ti
+                JOIN events_finder.user u ON ti.id = u.telegram_id
+                JOIN events_finder.user_team ut ON u.id = ut.user_id
+                JOIN events_finder.team t ON ut.team_id = t.id
+                WHERE u.role = 'DISTRIBUTOR'
+                AND t.name = $1
+            """
+            
+            rows = await self.database.fetch(sql, team_name)
+            
+            if not rows:
+                return []
+            
+            distributors = []
+            for row in rows:
+                try:
+                    telegram_read = TelegramInfoRead.model_validate(dict(row), from_attributes=True)
+                    distributors.append(telegram_read)
+                except Exception as e:
+                    print(f"Ошибка при преобразовании TelegramInfo: {e}", flush=True)
+                    continue
+            
+            return distributors
+            
+        except Exception as e:
+            print(f"Ошибка при получении дистрибьюторов (SQL): {e}", flush=True)
+            return None
+    
     
     async def create_tg_info(self, tg_create: TelegramInfoCreate) -> int | None:
         """Вставить информацию из телеграмма """
