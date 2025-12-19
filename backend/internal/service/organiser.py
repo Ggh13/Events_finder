@@ -2,7 +2,7 @@ from internal.repository.user import UserRepository
 from internal.repository.photo import PhotoRepository
 from internal.repository.event import EventRepository
 
-from internal.entity.base import EventCreate, UserRole, GetEvents, GetEvent, EventRead, EventUpdate, UpdateRequest
+from internal.entity.base import EventCreate, UserRole, GetEvents, GetEvent, EventRead, EventUpdate, UpdateRequest, UserCreate, CategoryBase
 
 class OrganiserService:
     def __init__(self, user_repo: UserRepository, photo_repo: PhotoRepository, event_repo: EventRepository):
@@ -136,3 +136,29 @@ class OrganiserService:
             return None
         
         return event
+
+    async def register_user(self, User2: UserCreate):
+        user = await self.user_repo.create_user(user_create=User2)
+
+        print("Serv user registr good", flush=True)
+        if user is None:
+            print("Failed to registr user", flush=True)
+            return None
+        return user
+
+    async def add_category_to_user(self, category2: CategoryBase, token: int):
+        user = await self.user_repo.add_category_to_user(user_id=int(token), category_in=category2)
+        print("Serv user registr good", flush=True)
+        if user is None:
+            print("Failed to registr user", flush=True)
+            return None
+        return user
+
+    async def get_recomend_post(self, token: int):
+        user = await self.user_repo.get_recomend_post(user_id=int(token))
+        print("Serv user registr good", flush=True)
+        if user is None:
+            print("Failed to registr user", flush=True)
+            return None
+        return user
+

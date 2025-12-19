@@ -24,7 +24,7 @@ create table if not exists events_finder.user (
   telegram_id int references events_finder.telegram_info(id),
   first_name text not null,
   last_name text not null,
-  photo_id int references events_finder.photo(id),
+  photo_id int not null,
   balance int not null,
   role user_role not null default 'P',
   longitude decimal(8, 6) not null,
@@ -135,3 +135,9 @@ create table if not exists events_finder.event_report(
   reported_event_id int references events_finder.event(id)
 );
 
+ALTER TABLE events_finder."user"
+  DROP CONSTRAINT IF EXISTS user_photo_id_fkey;
+
+-- если фото не обязательно
+ALTER TABLE events_finder."user"
+  ALTER COLUMN photo_id DROP NOT NULL;

@@ -2,20 +2,29 @@
 ##  Общие эндпоинты (для всех ролей)
 
 ### 1. Создание аккаунта
-**POST** `/api/create_account`
+**POST** `/api/register`
 
 **Request:**
 ```json
 {
-  "telegram_id": 123456789,
-  "username": "john_doe",
-  "first_name": "John",
-  "last_name": "Doe",
-  "chat_id": 987654321,
-  "longitude": 37.622504,
-  "latitude": 55.753215,
-  "role": "P"
+  "telegram_id": 123,
+  "user": {
+    "telegram_info": {
+      "id": 1,
+      "telegram_id": 123,
+      "username": "ivan_petrov",
+      "chat_id": 123
+    },
+    "first_name": "Ivan",
+    "last_name": "Petrov",
+    "role": "PARTICIPANT",
+    "balance": 0,
+    "longitude": 37.6,
+    "latitude": 55.7,
+    "photo_id": null
+  }
 }
+
 ```
 
 **Response (200):**
@@ -31,25 +40,7 @@
 **Request:**
 ```json
 {
-  "success": true,
-  "message": "Categories added successfully",
-  "data": {
-    "user_id": 1,
-    "categories": [
-      {
-        "id": 1,
-        "name": "Спорт"
-      },
-      {
-        "id": 2,
-        "name": "Музыка"
-      },
-      {
-        "id": 3,
-        "name": "Технология"
-      }
-    ]
-  }
+  "id_cat": 3
 }
 ```
 
