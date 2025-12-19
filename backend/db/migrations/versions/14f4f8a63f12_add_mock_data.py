@@ -82,7 +82,7 @@ def upgrade() -> None:
         {"first_name": "Denis", "last_name": "Tugov", "telegram_id": 3, "photo_id": 3,
           "balance": 0, "role": "ADMIN", "longitude": 55.75, "latitude": 37.62},
         {"first_name": "German", "last_name": "Pickel", "telegram_id": 4, "photo_id": 10,
-          "balance": 0, "role": "PARTICIPANT", "longitude": 55.75, "latitude": 37.62},
+          "balance": 0, "role": "DISTRIBUTOR", "longitude": 55.75, "latitude": 37.62},
     ]
     
     op.bulk_insert(user_table, users)
@@ -212,10 +212,10 @@ def upgrade() -> None:
 
         # Добавляем еще фото для новых событий
     sport_art_photos = [
-        {"url": "https://example.com/events/basketball_tournament.jpg"},
-        {"url": "https://example.com/events/basketball_action.jpg"},
-        {"url": "https://example.com/events/art_exhibition.jpg"},
-        {"url": "https://example.com/events/painting_workshop.jpg"},
+        {"url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Jordan_by_Lipofsky_16577.jpg"},
+        {"url": "https://ice-profy.ru/wp-content/uploads/2023/06/2-6.jpg"},
+        {"url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRje093hxESI0DpJjGX48iBGhbj6LLFiBfkjA&s"},
+        {"url": "https://img.freepik.com/premium-photo/art-wine-workshop-painting-workshop-with-blank-canvases_223582-3701.jpg"},
     ]
     
     op.bulk_insert(photo_table, sport_art_photos)
@@ -340,6 +340,13 @@ def upgrade() -> None:
         {"user_id": 2, "team_id": 5},  # nust_misis
         {"user_id": 2, "team_id": 6},  # sportmisis
         {"user_id": 2, "team_id": 7},  # youthmisis
+        {"user_id": 4, "team_id": 1},  # acmmisis
+        {"user_id": 4, "team_id": 2},  # aiknowledgeclub
+        {"user_id": 4, "team_id": 3},  # art_klaster
+        {"user_id": 4, "team_id": 4},  # itatmisis
+        {"user_id": 4, "team_id": 5},  # nust_misis
+        {"user_id": 4, "team_id": 6},  # sportmisis
+        {"user_id": 4, "team_id": 7},
     ]
     
     op.bulk_insert(user_team_table, distributor_teams)
