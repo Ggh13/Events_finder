@@ -9,6 +9,30 @@ services:
     image: ${PACKAGE_LINK}/backend:latest
     networks:
       - app-network
+  bot:
+    depends_on:
+        postgres:
+          condition: service_healthy
+    build: .
+    image: ${PACKAGE_LINK}/bot:latest
+    networks:
+      - app-network
+  recommender_system:
+    depends_on:
+        postgres:
+          condition: service_healthy
+    build: .
+    image: ${PACKAGE_LINK}/recommender_system:latest
+    networks:
+      - app-network
+  ml_classifier:
+    depends_on:
+        postgres:
+          condition: service_healthy
+    build: .
+    image: ${PACKAGE_LINK}/ml_classifier:latest
+    networks:
+      - app-network
   postgres:
     container_name: postgres_events
     image: postgres:latest
