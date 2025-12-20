@@ -70,7 +70,7 @@ jobs:
     env:
       job_name: Build_Job
       IMAGE_TAG_BACK: ${{secrets.PACKAGE_LINK}}/recommender_system:latest
-      backend_container: events_finder-recommender_system
+      rec_sys_container: events_finder-recommender_system
     steps:
     - uses: actions/checkout@v4
     - name: Login ghcr.io
@@ -97,7 +97,7 @@ jobs:
     env:
       job_name: Build_Job
       IMAGE_TAG_BACK: ${{secrets.PACKAGE_LINK}}/bot:latest
-      backend_container: events_finder-bot
+      bot_container: events_finder-bot
     steps:
     - uses: actions/checkout@v4
     - name: Login ghcr.io
@@ -124,7 +124,7 @@ jobs:
     env:
       job_name: Build_Job
       IMAGE_TAG_BACK: ${{secrets.PACKAGE_LINK}}/ml_classifier:latest
-      backend_container: events_finder-ml_classifier
+      ml_container: events_finder-ml_classifier
     steps:
     - uses: actions/checkout@v4
     - name: Login ghcr.io
@@ -136,7 +136,7 @@ jobs:
     - name: Push docker images
       run: |
         docker images
-        docker tag $bot_container ${{ env.IMAGE_TAG_BACK }}
+        docker tag $ml_container ${{ env.IMAGE_TAG_BACK }}
         docker push ${{ env.IMAGE_TAG_BACK }}
 
     - name: Verify push manually
