@@ -309,6 +309,9 @@ jobs:
     needs:
     - Pull_backend
     - Pull_nginx
+    - Pull_ml_classifier
+    - Pull_bot
+    - Pull_recommender_system
     env:
       job_name: Deploy_Job
     steps:
