@@ -37,6 +37,7 @@ class Database:
         self.pool: Optional[asyncpg.Pool] = None
     async def Connect(self) -> Tuple[bool, str]:
         try:
+            print(f"DEBUG: Connecting to PostgreSQL - host: {self.cfg.host}, port: {self.cfg.port}, user: {self.cfg.user}, database: {self.cfg.database}", flush=True)
             self.pool = await asyncpg.create_pool(
                 user=self.cfg.user,
                 password=self.cfg.password,
@@ -46,8 +47,10 @@ class Database:
                 min_size=self.cfg.min_conn,  # minimum conn count
                 max_size=self.cfg.max_conn  # maximum conn count
             )
+            print(f"DEBUG: Successfully connected to PostgreSQL at {self.cfg.host}:{self.cfg.port}", flush=True)
             return (True, "")
         except Exception as e:
+            print(f"DEBUG: Failed to connect to PostgreSQL at {self.cfg.host}:{self.cfg.port} - {str(e)}", flush=True)
             return (False, f"Connect error: { str(e) }")
     async def PingDB(self) -> Tuple[bool, str]:
         """

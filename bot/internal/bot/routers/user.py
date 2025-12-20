@@ -7,24 +7,22 @@ from aiogram.fsm.state import State, StatesGroup
 
 import aiohttp
 
+from internal.bot.categories import categories
+
 router = Router(name=__name__)
 
 # В docker-compose сети "localhost" НЕ указывает на backend-контейнер, поэтому используем "backend"
 BACKEND_REGISTER_URL = "http://backend:8080/api/register"
 BACKEND_ADD_CATEGORY_URL = "http://backend:8080/api/add_category"
 BACKEND_RECOMMEND_URL = "http://backend:8080/api/get_recomend_post"
+RECOMMENDER_CATEGORIES_URL = "http://recommender_system:8000/apiml/add_category/"
 
 # Простейшее in-memory хранилище telegram_id -> user_id (Bearer token = user_id).
 # Для продакшена лучше хранить в БД/Redis.
 USER_ID_BY_TELEGRAM: dict[int, int] = {}
 
-# Список категорий (id_cat -> название). Подставь свои реальные категории.
-CATEGORIES: list[tuple[int, str]] = [
-    (1, "Спорт"),
-    (2, "Музыка"),
-    (3, "IT"),
-    (4, "Кино"),
-]
+# Хранилище выбранных категорий пользователя (telegram_id -> список названий категорий)
+USER_CATEGORIES: dict[int, list[str]] = {}
 
 
 class UserRegister(StatesGroup):
@@ -41,6 +39,198 @@ class UserRegister(StatesGroup):
 
 def _get_user_id_or_none(telegram_id: int) -> int | None:
     return USER_ID_BY_TELEGRAM.get(telegram_id)
+
+
+def _main_menu_keyboard() -> types.InlineKeyboardMarkup:
+    """Создает клавиатуру главного меню"""
+    return types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(text="👤 Регистрация", callback_data="menu_register"),
+                types.InlineKeyboardButton(text="📂 Категории", callback_data="menu_categories"),
+            ],
+            [
+                types.InlineKeyboardButton(text="🎯 Рекомендации", callback_data="menu_recommend"),
+            ],
+            [
+                types.InlineKeyboardButton(text="➕ Создать мероприятие", callback_data="menu_create_event"),
+                types.InlineKeyboardButton(text="📋 Мои мероприятия", callback_data="menu_created_events"),
+            ],
+            [
+                types.InlineKeyboardButton(text="🔄 Обновить меню", callback_data="menu_refresh"),
+            ],
+        ]
+    )
+
+
+def _get_main_menu_text() -> str:
+    """Формирует текст главного меню"""
+    return (
+        "🎉 *Добро пожаловать в Events Finder!*\n\n"
+        "📌 *Доступные команды:*\n\n"
+        "👤 *Для пользователей:*\n"
+        "• `/register` - Регистрация в системе\n"
+        "• `/categories` - Выбор категорий интересов\n"
+        "• `/recommend` - Получить рекомендацию мероприятия\n\n"
+        "🎭 *Для организаторов:*\n"
+        "• `/create_event` - Создать новое мероприятие\n"
+        "• `/created_events` - Просмотр созданных мероприятий\n"
+        "• `/edit_event` - Редактировать мероприятие\n\n"
+        "💡 *Используйте кнопки ниже для быстрого доступа к функциям*"
+    )
+
+
+# -------------------------
+# START COMMAND (Главное меню)
+# -------------------------
+
+@router.message(Command("start"))
+async def cmd_start(message: types.Message, state: FSMContext):
+    """Обработчик команды /start - показывает главное меню"""
+    await state.clear()
+    await message.answer(
+        _get_main_menu_text(),
+        parse_mode="Markdown",
+        reply_markup=_main_menu_keyboard()
+    )
+
+
+@router.callback_query(F.data == "menu_register")
+async def menu_register(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Регистрация' из главного меню"""
+    await callback.answer()
+    await state.clear()
+    
+    # Сразу сохраняем то, что можем взять из Telegram и значения по умолчанию
+    await state.update_data(
+        telegram={"telegram_id": callback.from_user.id},
+        telegram_info={
+            "id": 1,  # Автоматически устанавливаем 1
+            "telegram_id": callback.from_user.id,
+            "username": callback.from_user.username or "",
+            "chat_id": callback.message.chat.id,
+        },
+        balance=23,  # Автоматически устанавливаем 23
+        longitude=37.6173,  # Координаты Москвы по умолчанию
+        latitude=55.7558,
+        photo_id=None,  # Автоматически пропускаем фото
+    )
+    
+    await callback.message.answer("Введите имя (first_name):")
+    await state.set_state(UserRegister.first_name)
+
+
+@router.callback_query(F.data == "menu_categories")
+async def menu_categories(callback: types.CallbackQuery):
+    """Обработчик кнопки 'Категории' из главного меню"""
+    await callback.answer()
+    user_id = _get_user_id_or_none(callback.from_user.id)
+    if user_id is None:
+        await callback.message.answer("Сначала зарегистрируйся командой /register, чтобы получить user_id.")
+        return
+    
+    await callback.message.answer("Выбери категорию интересов:", reply_markup=_categories_keyboard())
+
+
+@router.callback_query(F.data == "menu_recommend")
+async def menu_recommend(callback: types.CallbackQuery):
+    """Обработчик кнопки 'Рекомендации' из главного меню"""
+    await callback.answer()
+    user_id = _get_user_id_or_none(callback.from_user.id)
+    if user_id is None:
+        await callback.message.answer("Сначала зарегистрируйся (/register), чтобы получить user_id.")
+        return
+    
+    await _send_recommendation(callback.message, user_id)
+
+
+@router.callback_query(F.data == "menu_create_event")
+async def menu_create_event(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Создать мероприятие' из главного меню"""
+    await callback.answer()
+    # Используем lazy import для избежания циклических импортов
+    from .organiser import EventCreation
+    await state.clear()
+    await callback.message.answer(
+        text="Введите название нового мероприятия"
+    )
+    await state.set_state(EventCreation.name)
+
+
+@router.callback_query(F.data == "menu_created_events")
+async def menu_created_events(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Мои мероприятия' из главного меню"""
+    await callback.answer()
+    try:
+        # Отправляем запрос на получение мероприятий
+        await state.update_data(telegram_id=callback.from_user.id)
+        request_data = {
+            "telegram_id": callback.from_user.id,
+            "page": 1
+        }
+        
+        loading_msg = await callback.message.answer("🔄 Загружаем ваши мероприятия...")
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                'http://backend:8080/api/get_events',
+                json=request_data,
+                headers={'Content-Type': 'application/json'}
+            ) as response:
+                
+                if response.status == 200:
+                    resp = await response.json()
+                    all_events = resp.get("events", [])
+                    total_cnt = resp.get("total_cnt", 0)
+
+                    await state.update_data(total_cnt=total_cnt)
+                    
+                    if not all_events:
+                        await loading_msg.edit_text("📭 У вас пока нет созданных мероприятий.")
+                        return
+                    
+                    # Используем lazy import для избежания циклических импортов
+                    from .organiser import EventViewStates, show_events_page
+                    
+                    await state.set_state(EventViewStates.viewing_events)
+                    await state.update_data({
+                        'all_events': all_events,
+                        'current_page': 0,
+                        'total_pages': (total_cnt + 2) // 3,
+                        'message_id': loading_msg.message_id
+                    })
+                    
+                    # Показываем первую страницу
+                    await show_events_page(
+                        message=callback.message,
+                        state=state,
+                        all_events=all_events,
+                        page=0,
+                        total_pages=(total_cnt + 2) // 3,
+                        edit_message_id=loading_msg.message_id
+                    )
+                    
+                elif response.status == 404:
+                    await loading_msg.edit_text("📭 Мероприятий не найдено.")
+                else:
+                    error = await response.text()
+                    await loading_msg.edit_text(f"❌ Ошибка загрузки мероприятий: {response.status}")
+                    
+    except aiohttp.ClientConnectorError:
+        await callback.message.answer("❌ Не удалось подключиться к серверу.")
+    except Exception as e:
+        await callback.message.answer(f"❌ Произошла ошибка: {str(e)}")
+
+
+@router.callback_query(F.data == "menu_refresh")
+async def menu_refresh(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Обновить меню' из главного меню"""
+    await callback.answer("🔄 Меню обновлено")
+    await callback.message.edit_text(
+        _get_main_menu_text(),
+        parse_mode="Markdown",
+        reply_markup=_main_menu_keyboard()
+    )
 
 
 def _role_keyboard() -> types.InlineKeyboardMarkup:
@@ -76,11 +266,6 @@ def _edit_keyboard() -> types.InlineKeyboardMarkup:
             ],
             [
                 types.InlineKeyboardButton(text="Роль", callback_data="reg_edit_field:role"),
-                types.InlineKeyboardButton(text="Баланс", callback_data="reg_edit_field:balance"),
-            ],
-            [
-                types.InlineKeyboardButton(text="Координаты", callback_data="reg_edit_field:coords"),
-                types.InlineKeyboardButton(text="Фото", callback_data="reg_edit_field:photo"),
             ],
             [types.InlineKeyboardButton(text="Назад", callback_data="reg_back_to_summary")],
         ]
@@ -126,38 +311,20 @@ async def _show_summary(message: types.Message, state: FSMContext) -> None:
 async def cmd_register(message: types.Message, state: FSMContext):
     await state.clear()
 
-    # Сразу сохраняем то, что можем взять из Telegram
+    # Сразу сохраняем то, что можем взять из Telegram и значения по умолчанию
     await state.update_data(
         telegram={"telegram_id": message.from_user.id},
         telegram_info={
-            # id попросим у пользователя отдельным шагом, т.к. это твой внутренний id
-            "id": None,
+            "id": 1,  # Автоматически устанавливаем 1
             "telegram_id": message.from_user.id,
             "username": message.from_user.username or "",
             "chat_id": message.chat.id,
         },
-        photo_id=None,
+        balance=23,  # Автоматически устанавливаем 23
+        longitude=37.6173,  # Координаты Москвы по умолчанию
+        latitude=55.7558,
+        photo_id=None,  # Автоматически пропускаем фото
     )
-
-    await message.answer("Введите telegram_info.id (внутренний id в БД, число):")
-    await state.set_state(UserRegister.telegram_info_id)
-
-
-@router.message(UserRegister.telegram_info_id)
-async def process_telegram_info_id(message: types.Message, state: FSMContext):
-    if not message.text:
-        await message.answer("Нужно число. Введите telegram_info.id ещё раз:")
-        return
-    try:
-        tid = int(message.text)
-    except ValueError:
-        await message.answer("Нужно число. Введите telegram_info.id ещё раз:")
-        return
-
-    data = await state.get_data()
-    ti = data["telegram_info"]
-    ti["id"] = tid
-    await state.update_data(telegram_info=ti)
 
     await message.answer("Введите имя (first_name):")
     await state.set_state(UserRegister.first_name)
@@ -212,97 +379,14 @@ async def process_role_cb(callback: types.CallbackQuery, state: FSMContext):
         await _show_summary(callback.message, state)
         return
 
-    await callback.message.answer("Введите balance (целое число, например 0):")
-    await state.set_state(UserRegister.balance)
+    # После выбора роли сразу показываем summary (все остальные поля уже заполнены автоматически)
+    await _show_summary(callback.message, state)
 
 
-@router.message(UserRegister.balance)
-async def process_balance(message: types.Message, state: FSMContext):
-    if not message.text:
-        await message.answer("Нужно число. Введите balance ещё раз:")
-        return
-    try:
-        balance = int(message.text)
-    except ValueError:
-        await message.answer("Нужно число. Введите balance ещё раз:")
-        return
-
-    await state.update_data(balance=balance)
-
-    data = await state.get_data()
-    if data.get("editing_field"):
-        await state.update_data(editing_field=False)
-        await _show_summary(message, state)
-        return
-
-    await message.answer(
-        "Введите координаты в формате `longitude, latitude` (например `37.6, 55.7`) "
-        "или отправьте локацию Telegram:",
-        parse_mode="Markdown",
-    )
-    await state.set_state(UserRegister.coords)
 
 
-@router.message(UserRegister.coords)
-async def process_coords(message: types.Message, state: FSMContext):
-    # вариант 1: Telegram location
-    if message.location:
-        await state.update_data(
-            latitude=float(message.location.latitude),
-            longitude=float(message.location.longitude),
-        )
-        data = await state.get_data()
-        if data.get("editing_field"):
-            await state.update_data(editing_field=False)
-            await _show_summary(message, state)
-            return
-
-        await message.answer("Отправьте фото (или напишите `skip`, чтобы photo_id = null):")
-        await state.set_state(UserRegister.photo)
-        return
-
-    # вариант 2: текстом
-    if not message.text:
-        await message.answer("Нужно либо локацию, либо текст `longitude, latitude`. Повторите:")
-        return
-
-    try:
-        parts = [p.strip() for p in message.text.split(",")]
-        if len(parts) != 2:
-            raise ValueError("bad format")
-        longitude = float(parts[0])
-        latitude = float(parts[1])
-    except Exception:
-        await message.answer("Неправильный формат. Пример: `37.6, 55.7`")
-        return
-
-    await state.update_data(longitude=longitude, latitude=latitude)
-
-    data = await state.get_data()
-    if data.get("editing_field"):
-        await state.update_data(editing_field=False)
-        await _show_summary(message, state)
-        return
-
-    await message.answer("Отправьте фото (или напишите `skip`, чтобы photo_id = null):")
-    await state.set_state(UserRegister.photo)
 
 
-@router.message(UserRegister.photo)
-async def process_photo(message: types.Message, state: FSMContext):
-    if message.text and message.text.strip().lower() == "skip":
-        await state.update_data(photo_id=None)
-        await _show_summary(message, state)
-        return
-
-    if not message.photo:
-        await message.answer("Нужно фото или `skip`. Повторите:")
-        return
-
-    photo_id = message.photo[-1].file_id
-    await state.update_data(photo_id=photo_id)
-
-    await _show_summary(message, state)
 
 
 @router.callback_query(F.data == "reg_edit")
@@ -326,15 +410,6 @@ async def reg_edit_field(callback: types.CallbackQuery, state: FSMContext):
     elif field == "role":
         await callback.message.answer("Выберите роль:", reply_markup=_role_keyboard())
         await state.set_state(UserRegister.role)
-    elif field == "balance":
-        await callback.message.answer("Введите balance (целое число):")
-        await state.set_state(UserRegister.balance)
-    elif field == "coords":
-        await callback.message.answer("Введите `longitude, latitude` или отправьте локацию:")
-        await state.set_state(UserRegister.coords)
-    elif field == "photo":
-        await callback.message.answer("Отправьте фото или `skip`:")
-        await state.set_state(UserRegister.photo)
     else:
         await callback.message.answer("Неизвестное поле.")
 
@@ -361,7 +436,7 @@ async def reg_confirm(callback: types.CallbackQuery, state: FSMContext):
         "telegram_id": 2,
         "user": {
             "telegram_info": {
-                "id": 2,
+                "id": data["telegram_info"]["id"],  # Используем сохраненное значение (1)
                 "telegram_id": data["telegram_info"]["telegram_id"],
                 "username": data["telegram_info"]["username"],
                 "chat_id": data["telegram_info"]["chat_id"],
@@ -369,10 +444,10 @@ async def reg_confirm(callback: types.CallbackQuery, state: FSMContext):
             "first_name": data["first_name"],
             "last_name": data["last_name"],
             "role": data["role"],
-            "balance": data["balance"],
-            "longitude": float(data["longitude"]),
-            "latitude": float(data["latitude"]),
-            "photo_id": data.get("photo_id"),
+            "balance": data["balance"],  # Используем сохраненное значение (23)
+            "longitude": float(data["longitude"]),  # Используем сохраненное значение
+            "latitude": float(data["latitude"]),  # Используем сохраненное значение
+            "photo_id": data.get("photo_id"),  # None по умолчанию
         },
     }
 
@@ -392,6 +467,8 @@ async def reg_confirm(callback: types.CallbackQuery, state: FSMContext):
                     user_id = result.get("user")
                     if isinstance(user_id, int):
                         USER_ID_BY_TELEGRAM[callback.from_user.id] = user_id
+                        # Инициализируем список категорий для нового пользователя
+                        USER_CATEGORIES[callback.from_user.id] = []
 
                     await loading.edit_text(f"✅ Успех. Ответ сервера: {result}")
                     await state.clear()
@@ -408,7 +485,8 @@ async def reg_confirm(callback: types.CallbackQuery, state: FSMContext):
 
 def _categories_keyboard() -> types.InlineKeyboardMarkup:
     rows: list[list[types.InlineKeyboardButton]] = []
-    for cat_id, cat_name in CATEGORIES:
+    # categories - это словарь {название: id}
+    for cat_name, cat_id in categories.items():
         rows.append([
             types.InlineKeyboardButton(
                 text=cat_name,
@@ -444,6 +522,17 @@ async def cat_pick(callback: types.CallbackQuery):
         return
 
     cat_id = int(callback.data.split(":", 1)[1])
+    
+    # Находим название категории по ID
+    cat_name = None
+    for name, cid in categories.items():
+        if cid == cat_id:
+            cat_name = name
+            break
+    
+    if cat_name is None:
+        await callback.message.answer(f"❌ Категория с id={cat_id} не найдена.")
+        return
 
     payload = {"id_cat": cat_id}
     headers = {
@@ -457,12 +546,130 @@ async def cat_pick(callback: types.CallbackQuery):
             async with session.post(BACKEND_ADD_CATEGORY_URL, json=payload, headers=headers) as resp:
                 if resp.status in (200, 201):
                     data = await resp.json()
-                    await msg.edit_text(f"✅ Категория сохранена (id_cat={cat_id}). Ответ: {data}")
+                    
+                    # Сохраняем категорию в список выбранных
+                    telegram_id = callback.from_user.id
+                    if telegram_id not in USER_CATEGORIES:
+                        USER_CATEGORIES[telegram_id] = []
+                    if cat_name not in USER_CATEGORIES[telegram_id]:
+                        USER_CATEGORIES[telegram_id].append(cat_name)
+                    
+                    await msg.edit_text(f"✅ Категория '{cat_name}' сохранена!")
+                    
+                    # Получаем рекомендации на основе выбранных категорий
+                    await _show_category_recommendations(callback.message, telegram_id)
                 else:
                     text = await resp.text()
                     await msg.edit_text(f"❌ Ошибка {resp.status}: {text[:500]}")
     except Exception as e:
         await msg.edit_text(f"❌ Ошибка отправки: {e}")
+
+
+async def _get_category_recommendations(user_categories: list[str], top_k: int = 5) -> list[str]:
+    """Получает рекомендации категорий от recommender system"""
+    if not user_categories:
+        return []
+    
+    payload = {
+        "categories": user_categories,
+        "top_k": top_k
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                RECOMMENDER_CATEGORIES_URL,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("recommendations", [])
+                else:
+                    return []
+    except Exception as e:
+        print(f"Ошибка получения рекомендаций: {e}")
+        return []
+
+
+def _recommended_categories_keyboard(recommended_cats: list[str], user_categories: list[str]) -> types.InlineKeyboardMarkup:
+    """Создает клавиатуру с рекомендованными категориями"""
+    rows: list[list[types.InlineKeyboardButton]] = []
+    
+    # Фильтруем рекомендации - убираем уже выбранные категории
+    available_recommendations = [cat for cat in recommended_cats if cat not in user_categories]
+    
+    # Показываем только первые 5 доступных рекомендаций
+    for cat_name in available_recommendations[:5]:
+        cat_id = categories.get(cat_name)
+        if cat_id:
+            rows.append([
+                types.InlineKeyboardButton(
+                    text=f"➕ {cat_name}",
+                    callback_data=f"cat_pick:{cat_id}"
+                )
+            ])
+    
+    if not rows:
+        # Если нет доступных рекомендаций, показываем кнопку "Закрыть"
+        rows.append([types.InlineKeyboardButton(text="✅ Все рекомендации добавлены", callback_data="rec_cats_close")])
+    else:
+        rows.append([types.InlineKeyboardButton(text="❌ Закрыть", callback_data="rec_cats_close")])
+    
+    return types.InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _show_category_recommendations(message: types.Message, telegram_id: int):
+    """Показывает рекомендованные категории пользователю"""
+    user_cats = USER_CATEGORIES.get(telegram_id, [])
+    
+    if not user_cats:
+        return
+    
+    loading_msg = await message.answer("🔍 Ищу подходящие категории...")
+    
+    recommended = await _get_category_recommendations(user_cats, top_k=5)
+    
+    if not recommended:
+        await loading_msg.edit_text(
+            "✅ Категория добавлена!\n\n"
+            "К сожалению, рекомендации пока недоступны."
+        )
+        return
+    
+    # Фильтруем уже выбранные категории
+    available_recs = [cat for cat in recommended if cat not in user_cats]
+    
+    if not available_recs:
+        await loading_msg.edit_text(
+            "✅ Категория добавлена!\n\n"
+            "🎉 Вы уже добавили все рекомендованные категории!"
+        )
+        return
+    
+    text = (
+        "✅ Категория добавлена!\n\n"
+        "💡 *Рекомендуемые категории:*\n\n"
+    )
+    
+    for i, cat_name in enumerate(available_recs[:5], 1):
+        text += f"{i}. {cat_name}\n"
+    
+    text += "\n_Выберите категории для добавления:_"
+    
+    await loading_msg.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=_recommended_categories_keyboard(recommended, user_cats)
+    )
+
+
+@router.callback_query(F.data == "rec_cats_close")
+async def rec_cats_close(callback: types.CallbackQuery):
+    """Закрывает сообщение с рекомендациями"""
+    await callback.answer()
+    await callback.message.delete()
 
 
 # -------------------------

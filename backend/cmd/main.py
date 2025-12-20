@@ -24,6 +24,7 @@ from internal.service.organiser import OrganiserService
 async def start():
     cfg = Config()
     print("Config loaded:", cfg, flush=True)
+    print(f"DEBUG: Postgres config - host: {cfg.postgres.host}, port: {cfg.postgres.port}, user: {cfg.postgres.user}, database: {cfg.postgres.database}", flush=True)
     
     # База данных постгрес - передавать только  слой репозитория
     psgDB = Database(cfg.postgres)

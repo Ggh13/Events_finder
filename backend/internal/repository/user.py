@@ -26,6 +26,24 @@ from sqlalchemy.dialects import postgresql
 class UserRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
+    
+    def _convert_role_to_db_format(self, role) -> str:
+        """Преобразует роль из формата Pydantic в формат БД (enum использует полные названия)"""
+        # В БД enum использует полные названия: 'PARTICIPANT', 'ADMIN', 'ORGANISER', 'DISTRIBUTOR'
+        # Если это enum, берем его значение
+        if hasattr(role, 'value'):
+            return role.value
+        else:
+            return str(role)
+    
+    def _convert_role_from_db_format(self, role) -> str:
+        """Преобразует роль из формата БД в формат Pydantic (enum использует полные названия)"""
+        # В БД enum использует полные названия: 'PARTICIPANT', 'ADMIN', 'ORGANISER', 'DISTRIBUTOR'
+        # Если это enum, берем его значение
+        if hasattr(role, 'value'):
+            return role.value
+        else:
+            return str(role)
 
     async def get_distributors(self, team_name: str) -> List[TelegramInfoRead] | None:
         """
@@ -147,6 +165,10 @@ class UserRepository:
             telegram_info_id = int(dict(row)["id"])
 
         # 4) создаём user с FK на telegram_info.id
+        # Преобразуем роль из формата Pydantic ('ORGANISER') в формат БД ('O')
+        db_role = self._convert_role_to_db_format(user_create.role)
+        print(f"DEBUG: Creating user with role - Original: {user_create.role} (type: {type(user_create.role)}), Converted to DB: {db_role}", flush=True)
+        
         stmt = (
             insert(User)
             .values(
@@ -155,7 +177,7 @@ class UserRepository:
                 last_name=user_create.last_name,
                 photo_id=user_create.photo_id,
                 balance=user_create.balance,
-                role=str(user_create.role.value),
+                role=db_role,
                 longitude=float(user_create.longitude),
                 latitude=float(user_create.latitude),
             )
@@ -179,6 +201,8 @@ class UserRepository:
         Получить пользователя по telegram_id из таблицы telegram_info
         с использованием JOIN
         """
+        print(f"DEBUG: get_user_by_telegram_id called with telegram_id: {telegram_id}", flush=True)
+        
         # Создаем JOIN между таблицами user и telegram_info
         stmt = (
             select(User).join(TelegramInfo, User.telegram_id == TelegramInfo.id)
@@ -193,16 +217,30 @@ class UserRepository:
         sql = str(compiled)
         params = compiled.params
         
+        print(f"DEBUG: SQL query: {sql}", flush=True)
+        print(f"DEBUG: SQL params: {params.values()}", flush=True)
+        
         row = await self.database.fetchrow(sql, *params.values())
         if row is None:
+            print(f"DEBUG: No user found with telegram_id: {telegram_id}", flush=True)
             return None
+        
+        print(f"DEBUG: Found user row: {dict(row)}", flush=True)
         
         try:
             # Преобразуем строку в словарь и создаем объект UserRead
             user_dict = dict(row)
+            
+            # Роль в БД уже в формате полных названий ('ORGANISER', 'PARTICIPANT', etc.), 
+            # но может быть enum объектом, поэтому преобразуем в строку
+            if 'role' in user_dict:
+                user_dict['role'] = self._convert_role_from_db_format(user_dict['role'])
+            
+            print(f"DEBUG: User dict before validation: {user_dict}", flush=True)
             return UserRead.model_validate(user_dict, from_attributes=True)
         except Exception as e:
             print(f"Ошибка при создании UserRead: {e}", flush=True)
+            print(f"DEBUG: Row data: {dict(row) if row else None}", flush=True)
             return None
 
     async def add_category_to_user(

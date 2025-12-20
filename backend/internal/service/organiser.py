@@ -19,14 +19,24 @@ class OrganiserService:
     
 
     async def create_event(self, event_create: EventCreate, bot: Bot) -> int | None:
+        print(f"DEBUG: Looking for user with telegram_id: {event_create.organiser_id}", flush=True)
         user = await self.user_repo.get_user_by_telegram_id(telegram_id=event_create.organiser_id)
         if user is None:
-            print("Failed to get user", flush=True)
+            print(f"Failed to get user with telegram_id: {event_create.organiser_id}", flush=True)
             return None
         
-        if user.role != UserRole.ORGANISER:
-            print("User is not organiser", flush=True)
-            return None
+        # Выводим информацию о пользователе для отладки
+        print("=" * 50, flush=True)
+        print("DEBUG: User information when creating event:", flush=True)
+        print(f"  User ID: {user.id}", flush=True)
+        print(f"  User role: {user.role}", flush=True)
+        print(f"  User first_name: {user.first_name}", flush=True)
+        print(f"  User last_name: {user.last_name}", flush=True)
+        print(f"  User telegram_id: {user.telegram_id}", flush=True)
+        print(f"  Event organiser_id (telegram_id): {event_create.organiser_id}", flush=True)
+        print("=" * 50, flush=True)
+        
+        # Проверка роли временно отключена
         
         print(event_create.photo_ids)
 
