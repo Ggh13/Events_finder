@@ -18,7 +18,7 @@ class ItemsRequest(BaseModel):
     categories: List[str]
     top_k: Optional[int] = None
 
-@app.post("/api/add_category/",
+@app.post("/apiml/add_category/",
           tags=['Рекомендательная система'],
           summary='Рекомендовать подходящие категории',
           response_description="Список рекомендованных категорий")

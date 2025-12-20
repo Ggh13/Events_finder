@@ -34,6 +34,10 @@ class EventCreation(StatesGroup):
 @router.message(Command("create_event"))
 async def handle_create_event(message: types.Message, state: FSMContext):
     await state.clear()
+    # Устанавливаем координаты по умолчанию (Москва)
+    await state.update_data(
+        coords=[37.6173, 55.7558]  # longitude, latitude
+    )
     await message.answer(
         text="Введите название нового мероприятия"
     )
@@ -129,40 +133,13 @@ async def proccess_location(message: types.Message, state: FSMContext):
         await state.update_data(editing_field=False)
         await show_summary(message=message, state=state)
     else:
-        await message.answer(
-            text="Введите координаты места проведения. Их можно скопировать на Яндекс картах"
-        )
-        await state.set_state(EventCreation.coords)
-
-
-@router.message(EventCreation.coords)
-async def proccess_coords(message: types.Message, state: FSMContext):
-    if not message.text:
-        await message.answer(
-            "Неправильный формат координат. Введите заново"
-        )
-        return
-    
-    try:
-        coords = list(map(float, message.text.split(", ")))
-    except ValueError:
-        await message.answer(
-            "Неправильный формат координат. Введите заново"
-        )
-        return
-    
-    await state.update_data(coords=coords)
-
-    data = await state.get_data()
-    is_editing = data.get("editing_field", False)
-    if is_editing:
-        await state.update_data(editing_field=False)
-        await show_summary(message=message, state=state)
-    else:
+        # Координаты уже установлены по умолчанию, переходим к ссылке на чат
         await message.answer(
             text="Введите ссылку на чат с участниками"
         )
         await state.set_state(EventCreation.chat_link)
+
+
 
 
 @router.message(EventCreation.chat_link)
@@ -389,7 +366,8 @@ async def handle_confirm_event(callback_query: types.CallbackQuery, state: FSMCo
     data = await state.get_data()
     print(data, flush=True)
     
-    coords = data["coords"]
+    # Используем координаты по умолчанию, если они не установлены
+    coords = data.get("coords", [37.6173, 55.7558])  # longitude, latitude по умолчанию (Москва)
     print(coords, flush=True)
     print(data.get("photos", []), flush=True)
     category_ids = []
@@ -442,9 +420,34 @@ async def handle_confirm_event(callback_query: types.CallbackQuery, state: FSMCo
                     
                 else:
                     # Ошибка
-                    error = await response.text()
-                    print(error)
-                    await loading_msg.edit_text(f"❌ Ошибка: {response.status}\n{error[:200]}")
+                    try:
+                        # Пытаемся получить JSON ответ (FastAPI возвращает ошибки в JSON)
+                        error_json = await response.json()
+                        error_detail = error_json.get("detail", str(error_json))
+                    except:
+                        # Если не JSON, получаем текст
+                        error_detail = await response.text()
+                    
+                    print(f"Error response: {error_detail}", flush=True)
+                    
+                    # Проверяем, является ли ошибка связанной с ролью организатора
+                    error_lower = str(error_detail).lower()
+                    if "organiser" in error_lower or "organizer" in error_lower or response.status == 500:
+                        # Проверяем, может ли быть проблема с ролью
+                        await loading_msg.edit_text(
+                            "❌ *Ошибка создания мероприятия*\n\n"
+                            "⚠️ Вы не являетесь организатором.\n\n"
+                            "Для создания мероприятий необходимо иметь роль *ORGANISER*.\n"
+                            "Пожалуйста, зарегистрируйтесь с ролью организатора через команду /register",
+                            parse_mode="Markdown"
+                        )
+                    else:
+                        # Другая ошибка
+                        await loading_msg.edit_text(
+                            f"❌ Ошибка создания мероприятия\n\n"
+                            f"Статус: {response.status}\n"
+                            f"Детали: {str(error_detail)[:300]}"
+                        )
             
     except Exception as e:
         await loading_msg.edit_text(f"❌ Ошибка отправки: {str(e)}")
@@ -1221,7 +1224,6 @@ async def handle_edit_event(callback_query: types.CallbackQuery, state: FSMConte
                 types.InlineKeyboardButton(text="Место", callback_data="edit_field:location")
             ],
             [
-                types.InlineKeyboardButton(text="Координаты", callback_data="edit_field:coords"),
                 types.InlineKeyboardButton(text="Ссылка на чат", callback_data="edit_field:chat_link")
             ],
             [

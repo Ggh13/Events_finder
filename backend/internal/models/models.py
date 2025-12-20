@@ -19,10 +19,11 @@ from sqlalchemy.schema import CreateSchema
 event.listen(Base.metadata, 'before_create', CreateSchema('events_finder', if_not_exists=True))
 
 class UserRole(str, enum.Enum):
-    PARTICIPANT = 'P'
-    ADMIN = 'A'
-    ORGANISER = 'O'
-    DISTRIBUTOR = 'D'
+    # В БД enum использует полные названия согласно миграциям
+    PARTICIPANT = 'PARTICIPANT'
+    ADMIN = 'ADMIN'
+    ORGANISER = 'ORGANISER'
+    DISTRIBUTOR = 'DISTRIBUTOR'
 
 
 class TicketStatus(str, enum.Enum):

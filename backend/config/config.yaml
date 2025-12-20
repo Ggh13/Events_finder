@@ -2,7 +2,8 @@ REST_PORT: 8080
 REST_HOST: "0.0.0.0"
 
 POSTGRES:
-  POSTGRES_HOST: postgres #"127.0.0.1"
+  POSTGRES_HOST: postgres  # Имя сервиса в Docker Compose
+  # POSTGRES_HOST: "127.0.0.1"  # Для локальной разработки вне Docker
   POSTGRES_PORT: 5432
   POSTGRES_USER: "root"
   POSTGRES_PASS: "1234"

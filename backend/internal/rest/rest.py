@@ -156,14 +156,12 @@ class Router:
             credentials: HTTPAuthorizationCredentials = Depends(security),
         ):
             token = credentials.credentials  # <-- это сам Bearer-токен
-            user = await organiser_service.get_recomend_post(token)
-            if isinstance(user, str):
-                return {"user" : 333,
-                    "comment" : str(e)}
-            if user is None:
-                raise HTTPException(status_code=404, detail="telegram_id not found in telegram_info")
-            return {"user" : user,
-                    "comment" : "??"}
+            event = await organiser_service.get_recomend_post(token)
+            if isinstance(event, str):
+                raise HTTPException(status_code=500, detail=f"Error: {event}")
+            if event is None:
+                raise HTTPException(status_code=404, detail="Event not found")
+            return event
         
     async def run(self):
         asyncio.create_task(self.organiser_service.start_notification_loop(self.bot))
