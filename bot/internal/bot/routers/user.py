@@ -12,10 +12,10 @@ from internal.bot.categories import categories
 router = Router(name=__name__)
 
 # В docker-compose сети "localhost" НЕ указывает на backend-контейнер, поэтому используем "backend"
-BACKEND_REGISTER_URL = "http://backend:8080/api/register"
-BACKEND_ADD_CATEGORY_URL = "http://backend:8080/api/add_category"
-BACKEND_RECOMMEND_URL = "http://backend:8080/api/get_recomend_post"
-RECOMMENDER_CATEGORIES_URL = "http://recommender_system:8000/apiml/add_category/"
+BACKEND_REGISTER_URL = "http://62.113.43.6/api/register"
+BACKEND_ADD_CATEGORY_URL = "http://62.113.43.6/api/add_category"
+BACKEND_RECOMMEND_URL = "http://62.113.43.6/api/get_recomend_post"
+RECOMMENDER_CATEGORIES_URL = "http://62.113.43.6/apiml/add_category/"
 
 # Простейшее in-memory хранилище telegram_id -> user_id (Bearer token = user_id).
 # Для продакшена лучше хранить в БД/Redis.
